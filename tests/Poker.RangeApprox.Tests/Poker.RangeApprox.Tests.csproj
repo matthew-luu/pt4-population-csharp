@@ -24,11 +24,7 @@
 	<ItemGroup>
 		<Using Include="NUnit.Framework" />
 	</ItemGroup>
-
 	<ItemGroup>
-		<None Include="..\..\x64\Debug\Poker.RangeApprox.Equity.Native.dll"
-			  Link="Poker.RangeApprox.Equity.Native.dll"
-			  CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\..\x64\Debug\Poker.RangeApprox.Equity.Native.dll" Link="Poker.RangeApprox.Equity.Native.dll" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
-
 </Project>

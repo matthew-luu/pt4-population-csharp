@@ -1,16 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Poker.RangeApprox.Core\Poker.RangeApprox.Core.csproj" />
-    <ProjectReference Include="..\Poker.RangeApprox.Equity\Poker.RangeApprox.Equity.csproj" />
-    <ProjectReference Include="..\Poker.RangeApprox.Infrastructure\Poker.RangeApprox.Infrastructure.csproj" />
-  </ItemGroup>
-
+	<ItemGroup>
+		<ProjectReference Include="..\Poker.RangeApprox.Core\Poker.RangeApprox.Core.csproj" />
+		<ProjectReference Include="..\Poker.RangeApprox.Equity\Poker.RangeApprox.Equity.csproj" />
+		<ProjectReference Include="..\Poker.RangeApprox.Infrastructure\Poker.RangeApprox.Infrastructure.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="..\..\x64\Debug\Poker.RangeApprox.Equity.Native.dll" Link="Poker.RangeApprox.Equity.Native.dll" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
 </Project>
