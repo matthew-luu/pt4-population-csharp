@@ -19,19 +19,6 @@ if (profiles.Count == 0)
     return;
 }
 
-var profile = requestedProfileName is null
-    ? profiles.First()
-    : profiles.FirstOrDefault(p => p.Name.Equals(requestedProfileName, StringComparison.OrdinalIgnoreCase));
-
-if (profile is null)
-{
-    Console.WriteLine($"Ranking profile not found: {requestedProfileName}");
-    Console.WriteLine("Available profiles:");
-    foreach (var p in profiles)
-        Console.WriteLine($"  {p.Name}");
-    return;
-}
-
 var csvReader = new PopulationCsvReader();
 var rows = csvReader.Read(csvPath);
 
@@ -54,12 +41,14 @@ var resolver = new NodeDefinitionResolver();
 var requestBuilder = new ApproximationRequestBuilder(resolver);
 var approximator = new TopDownRangeApproximator();
 var ordering = new PopulationNodeOrdering(resolver);
+var rankingProfileSelector = new RankingProfileSelector();
 
 var engine = new ApproximationEngine(
     resolver,
     requestBuilder,
     approximator,
-    ordering);
+    ordering,
+    rankingProfileSelector);
 
 var writer = new RangeFileWriter();
 
@@ -78,24 +67,24 @@ switch (mode)
         break;
 }
 
-void RunSingle(List<PopulationNode> nodes, string? nodeKey)
+void RunSingle(List<PopulationNode> populationNodes, string? requestedNodeKey)
 {
-    if (string.IsNullOrWhiteSpace(nodeKey))
+    if (string.IsNullOrWhiteSpace(requestedNodeKey))
     {
         Console.WriteLine("single mode requires a node key.");
         return;
     }
 
-    var lookup = new PopulationNodeLookup(nodes);
-    var node = lookup.Get(nodeKey);
+    var lookup = new PopulationNodeLookup(populationNodes);
+    var node = lookup.Get(requestedNodeKey);
 
     if (node is null)
     {
-        Console.WriteLine($"Node not found: {nodeKey}");
+        Console.WriteLine($"Node not found: {requestedNodeKey}");
         return;
     }
 
-    var results = engine.RunAll(nodes, profile);
+    var results = engine.RunAll(populationNodes, profiles, requestedProfileName);
 
     if (!results.TryGetValue(node.NodeId.ToKey(), out var result))
     {
@@ -106,16 +95,17 @@ void RunSingle(List<PopulationNode> nodes, string? nodeKey)
     Write(node, result);
 }
 
-void RunRfi(List<PopulationNode> nodes)
+void RunRfi(List<PopulationNode> populationNodes)
 {
-    var rfiNodes = nodes
-        .Where(n => n.NodeId.Action == "rfi")
+    var rfiNodes = populationNodes
+        .Where(n => n.NodeId.Action.Equals("rfi", StringComparison.OrdinalIgnoreCase))
         .OrderBy(n => n.NodeId.Actor)
         .ToList();
 
-    var results = engine.RunAll(rfiNodes, profile);
+    var results = engine.RunAll(rfiNodes, profiles, requestedProfileName);
 
-    Console.WriteLine($"Generating {rfiNodes.Count} RFI ranges\n");
+    Console.WriteLine($"Generating {rfiNodes.Count} RFI ranges");
+    Console.WriteLine();
 
     foreach (var node in rfiNodes)
     {
@@ -126,13 +116,14 @@ void RunRfi(List<PopulationNode> nodes)
     }
 }
 
-void RunAll(List<PopulationNode> nodes)
+void RunAll(List<PopulationNode> populationNodes)
 {
-    var results = engine.RunAll(nodes, profile);
+    var results = engine.RunAll(populationNodes, profiles, requestedProfileName);
 
-    Console.WriteLine($"Generating {results.Count} ranges\n");
+    Console.WriteLine($"Generating {results.Count} ranges");
+    Console.WriteLine();
 
-    foreach (var node in nodes)
+    foreach (var node in populationNodes)
     {
         if (!results.TryGetValue(node.NodeId.ToKey(), out var result))
             continue;

@@ -8,43 +8,53 @@ public sealed class ApproximationEngine
     private readonly ApproximationRequestBuilder _requestBuilder;
     private readonly TopDownRangeApproximator _approximator;
     private readonly PopulationNodeOrdering _ordering;
+    private readonly RankingProfileSelector _rankingProfileSelector;
 
     public ApproximationEngine(
         NodeDefinitionResolver nodeDefinitionResolver,
         ApproximationRequestBuilder requestBuilder,
         TopDownRangeApproximator approximator,
-        PopulationNodeOrdering ordering)
+        PopulationNodeOrdering ordering,
+        RankingProfileSelector rankingProfileSelector)
     {
         _nodeDefinitionResolver = nodeDefinitionResolver ?? throw new ArgumentNullException(nameof(nodeDefinitionResolver));
         _requestBuilder = requestBuilder ?? throw new ArgumentNullException(nameof(requestBuilder));
         _approximator = approximator ?? throw new ArgumentNullException(nameof(approximator));
         _ordering = ordering ?? throw new ArgumentNullException(nameof(ordering));
+        _rankingProfileSelector = rankingProfileSelector ?? throw new ArgumentNullException(nameof(rankingProfileSelector));
     }
 
     public IReadOnlyDictionary<string, ApproximationResult> RunAll(
         IEnumerable<PopulationNode> nodes,
-        RankingProfile defaultProfile)
+        IReadOnlyList<RankingProfile> availableProfiles,
+        string? explicitProfileName = null)
     {
         ArgumentNullException.ThrowIfNull(nodes);
-        ArgumentNullException.ThrowIfNull(defaultProfile);
+        ArgumentNullException.ThrowIfNull(availableProfiles);
 
         var orderedNodes = _ordering.Order(nodes);
         var results = new Dictionary<string, ApproximationResult>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var node in orderedNodes)
         {
+            var strategy = _rankingProfileSelector.Select(
+                node.NodeId,
+                availableProfiles,
+                explicitProfileName);
+
             var request = _requestBuilder.Build(
                 populationNode: node,
                 existingResults: results,
-                rankingProfileName: defaultProfile.Name);
+                rankingProfileName: strategy.Profile.Name);
 
             var definition = _nodeDefinitionResolver.Resolve(node.NodeId);
             var candidateUniverse = GetCandidateUniverse(definition, results);
 
             var result = _approximator.ApproximateToComboTarget(
                 targetCombos: request.TargetCombos,
-                profile: defaultProfile,
-                candidateUniverse: candidateUniverse);
+                profile: strategy.Profile,
+                candidateUniverse: candidateUniverse,
+                direction: strategy.Direction);
 
             results[node.NodeId.ToKey()] = result;
         }
@@ -54,25 +64,32 @@ public sealed class ApproximationEngine
 
     public ApproximationResult RunOne(
         PopulationNode node,
-        RankingProfile defaultProfile,
-        IReadOnlyDictionary<string, ApproximationResult> existingResults)
+        IReadOnlyList<RankingProfile> availableProfiles,
+        IReadOnlyDictionary<string, ApproximationResult> existingResults,
+        string? explicitProfileName = null)
     {
         ArgumentNullException.ThrowIfNull(node);
-        ArgumentNullException.ThrowIfNull(defaultProfile);
+        ArgumentNullException.ThrowIfNull(availableProfiles);
         ArgumentNullException.ThrowIfNull(existingResults);
+
+        var strategy = _rankingProfileSelector.Select(
+            node.NodeId,
+            availableProfiles,
+            explicitProfileName);
 
         var request = _requestBuilder.Build(
             populationNode: node,
             existingResults: existingResults,
-            rankingProfileName: defaultProfile.Name);
+            rankingProfileName: strategy.Profile.Name);
 
         var definition = _nodeDefinitionResolver.Resolve(node.NodeId);
         var candidateUniverse = GetCandidateUniverse(definition, existingResults);
 
         return _approximator.ApproximateToComboTarget(
             targetCombos: request.TargetCombos,
-            profile: defaultProfile,
-            candidateUniverse: candidateUniverse);
+            profile: strategy.Profile,
+            candidateUniverse: candidateUniverse,
+            direction: strategy.Direction);
     }
 
     private static IReadOnlyList<RangeCell>? GetCandidateUniverse(

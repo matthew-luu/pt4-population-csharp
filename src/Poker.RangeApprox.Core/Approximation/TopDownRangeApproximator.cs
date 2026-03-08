@@ -6,7 +6,10 @@ public sealed class TopDownRangeApproximator
 {
     public const int TotalPreflopCombos = 1326;
 
-    public ApproximationResult Approximate(double targetPercent, RankingProfile profile)
+    public ApproximationResult Approximate(
+        double targetPercent,
+        RankingProfile profile,
+        SelectionDirection direction = SelectionDirection.StrongestFirst)
     {
         if (targetPercent < 0 || targetPercent > 100)
             throw new ArgumentOutOfRangeException(nameof(targetPercent), "Target percent must be between 0 and 100.");
@@ -18,20 +21,22 @@ public sealed class TopDownRangeApproximator
         return ApproximateToComboTarget(
             targetCombos: targetCombos,
             profile: profile,
-            candidateUniverse: null);
+            candidateUniverse: null,
+            direction: direction);
     }
 
     public ApproximationResult ApproximateToComboTarget(
         double targetCombos,
         RankingProfile profile,
-        IReadOnlyList<RangeCell>? candidateUniverse)
+        IReadOnlyList<RangeCell>? candidateUniverse,
+        SelectionDirection direction = SelectionDirection.StrongestFirst)
     {
         if (targetCombos < 0)
             throw new ArgumentOutOfRangeException(nameof(targetCombos), "Target combos must be >= 0.");
 
         ArgumentNullException.ThrowIfNull(profile);
 
-        var orderedCandidates = BuildOrderedCandidates(profile, candidateUniverse);
+        var orderedCandidates = BuildOrderedCandidates(profile, candidateUniverse, direction);
         var universeCombos = orderedCandidates.Sum(GetWeightedCombos);
 
         if (targetCombos > universeCombos)
@@ -79,37 +84,42 @@ public sealed class TopDownRangeApproximator
 
     private static List<RangeCell> BuildOrderedCandidates(
         RankingProfile profile,
-        IReadOnlyList<RangeCell>? candidateUniverse)
+        IReadOnlyList<RangeCell>? candidateUniverse,
+        SelectionDirection direction)
     {
-        // If no candidate universe is supplied, use the full ranking profile
-        // with weight 1.0 on every hand class.
+        List<RangeCell> ordered;
+
         if (candidateUniverse is null)
         {
-            return profile.OrderedHands
+            ordered = profile.OrderedHands
                 .Select(h => new RangeCell(h, 1.0))
                 .ToList();
         }
-
-        // Otherwise, constrain selection to the parent range / candidate set.
-        // Preserve ranking profile order, but only include hands present
-        // in the candidate universe.
-        var candidateMap = candidateUniverse
-            .Where(c => c.Weight > 0)
-            .ToDictionary(
-                c => c.HandClass.ToEquilabToken(),
-                c => c,
-                StringComparer.OrdinalIgnoreCase);
-
-        var ordered = new List<RangeCell>();
-
-        foreach (var hand in profile.OrderedHands)
+        else
         {
-            var token = hand.ToEquilabToken();
+            var candidateMap = candidateUniverse
+                .Where(c => c.Weight > 0)
+                .ToDictionary(
+                    c => c.HandClass.ToEquilabToken(),
+                    c => c,
+                    StringComparer.OrdinalIgnoreCase);
 
-            if (candidateMap.TryGetValue(token, out var candidate))
+            ordered = new List<RangeCell>();
+
+            foreach (var hand in profile.OrderedHands)
             {
-                ordered.Add(candidate);
+                var token = hand.ToEquilabToken();
+
+                if (candidateMap.TryGetValue(token, out var candidate))
+                {
+                    ordered.Add(candidate);
+                }
             }
+        }
+
+        if (direction == SelectionDirection.WeakestFirst)
+        {
+            ordered.Reverse();
         }
 
         return ordered;
