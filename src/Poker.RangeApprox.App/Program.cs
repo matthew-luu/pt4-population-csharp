@@ -1,5 +1,7 @@
 ﻿using Poker.RangeApprox.Core.Approximation;
 using Poker.RangeApprox.Core.Domain;
+using Poker.RangeApprox.Core.Equity;
+using Poker.RangeApprox.Core.Formatting;
 using Poker.RangeApprox.Infrastructure.Parsing;
 using Poker.RangeApprox.Infrastructure.Writing;
 
@@ -55,6 +57,9 @@ var writer = new RangeFileWriter();
 var callingSuperRangeBuilder = new CallingSuperRangeBuilder();
 var weightedSuperRangeWriter = new WeightedSuperRangeFileWriter(writer);
 
+var equityCalculator = new Poker.RangeApprox.Equity.OMPEval.OMPEvalEquityCalculator(iterations: 100000);
+var handRankingService = new HandVsRangeRankingService(equityCalculator);
+
 switch (mode)
 {
     case "single":
@@ -63,6 +68,10 @@ switch (mode)
 
     case "all":
         RunAll(nodes);
+        break;
+
+    case "rank-supercalls":
+        RunRankSuperCalls(nodes);
         break;
 
     default:
@@ -146,6 +155,44 @@ void RunAll(List<PopulationNode> populationNodes)
         Console.WriteLine($"Output: {Path.Combine("output", "calling super-ranges", superRange.Key)}");
         Console.WriteLine();
     }
+
+    WriteSuperCallRankings(callingSuperRanges);
+}
+
+void RunRankSuperCalls(List<PopulationNode> populationNodes)
+{
+    var results = engine.RunAll(populationNodes, profiles, requestedProfileName);
+    var callingSuperRanges = callingSuperRangeBuilder.Build(populationNodes, results);
+
+    weightedSuperRangeWriter.WriteAll("output", callingSuperRanges);
+    WriteSuperCallRankings(callingSuperRanges);
+
+    Console.WriteLine($"Generated {callingSuperRanges.Count} calling super-ranges and rankings.");
+    Console.WriteLine();
+}
+
+void WriteSuperCallRankings(IReadOnlyDictionary<string, WeightedSuperRangeResult> callingSuperRanges)
+{
+    foreach (var superRange in callingSuperRanges.Values.OrderBy(x => x.OpenPosition, StringComparer.OrdinalIgnoreCase))
+    {
+        var ranking = handRankingService.RankAllHands(superRange.Cells);
+        WriteHandRanking(superRange.Key, ranking);
+
+        Console.WriteLine($"Ranking: {superRange.Key}");
+        Console.WriteLine($"Output: {Path.Combine("output", "rankings", "vs call super", $"{superRange.Key}.txt")}");
+        Console.WriteLine();
+    }
+}
+
+void WriteHandRanking(string key, IReadOnlyList<HandEquityResult> ranking)
+{
+    var directory = Path.Combine("output", "rankings", "vs call super");
+    Directory.CreateDirectory(directory);
+
+    var path = Path.Combine(directory, $"{key}.txt");
+    var content = HandEquityResultFormatter.Format(ranking);
+
+    File.WriteAllText(path, content);
 }
 
 void Write(PopulationNode node, ApproximationResult result)
