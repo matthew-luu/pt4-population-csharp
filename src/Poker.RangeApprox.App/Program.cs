@@ -1,6 +1,5 @@
 ﻿using Poker.RangeApprox.Core.Approximation;
 using Poker.RangeApprox.Core.Domain;
-using Poker.RangeApprox.Core.Formatting;
 using Poker.RangeApprox.Infrastructure.Parsing;
 using Poker.RangeApprox.Infrastructure.Writing;
 
@@ -53,6 +52,8 @@ var engine = new ApproximationEngine(
     partitionApproximator);
 
 var writer = new RangeFileWriter();
+var callingSuperRangeBuilder = new CallingSuperRangeBuilder();
+var weightedSuperRangeWriter = new WeightedSuperRangeFileWriter(writer);
 
 switch (mode)
 {
@@ -132,6 +133,19 @@ void RunAll(List<PopulationNode> populationNodes)
 
         Write(node, result);
     }
+
+    var callingSuperRanges = callingSuperRangeBuilder.Build(populationNodes, results);
+    weightedSuperRangeWriter.WriteAll("output", callingSuperRanges);
+
+    Console.WriteLine($"Generating {callingSuperRanges.Count} weighted calling super-ranges");
+    Console.WriteLine();
+
+    foreach (var superRange in callingSuperRanges.Values.OrderBy(x => x.OpenPosition, StringComparer.OrdinalIgnoreCase))
+    {
+        Console.WriteLine($"Super-range: {superRange.Key}");
+        Console.WriteLine($"Output: {Path.Combine("output", "calling super-ranges", superRange.Key)}");
+        Console.WriteLine();
+    }
 }
 
 void Write(PopulationNode node, ApproximationResult result)
@@ -139,7 +153,7 @@ void Write(PopulationNode node, ApproximationResult result)
     var (directory, fileName) = GetOutputPath(node.NodeId);
 
     writer.WriteEquilab(Path.Combine(directory, $"{fileName}.txt"), result.Cells);
-    if(false)   writer.WriteMatrix(Path.Combine(directory, $"{fileName}_matrix.txt"), result.Cells);
+    if (false) writer.WriteMatrix(Path.Combine(directory, $"{fileName}_matrix.txt"), result.Cells);
 
     Console.WriteLine($"Node: {node.NodeId.ToKey()}");
     Console.WriteLine($"Output: {Path.Combine(directory, fileName)}");
@@ -152,9 +166,6 @@ void Write(PopulationNode node, ApproximationResult result)
     var actor = nodeId.Actor.Trim().ToLowerInvariant();
     var opponent = nodeId.Opponent?.Trim().ToLowerInvariant();
 
-    // -------------------------
-    // RFI
-    // -------------------------
     if (action == "rfi")
     {
         return (
@@ -163,9 +174,6 @@ void Write(PopulationNode node, ApproximationResult result)
         );
     }
 
-    // -------------------------
-    // Facing open
-    // -------------------------
     if (action is "call" or "fold" or "threebet")
     {
         if (!string.IsNullOrWhiteSpace(opponent) &&
@@ -180,9 +188,6 @@ void Write(PopulationNode node, ApproximationResult result)
         }
     }
 
-    // -------------------------
-    // Facing 3bet
-    // -------------------------
     if (action == "fourbet")
     {
         return (
