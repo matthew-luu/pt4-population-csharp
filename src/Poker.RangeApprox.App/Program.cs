@@ -42,13 +42,15 @@ var requestBuilder = new ApproximationRequestBuilder(resolver);
 var approximator = new TopDownRangeApproximator();
 var ordering = new PopulationNodeOrdering(resolver);
 var rankingProfileSelector = new RankingProfileSelector();
+var partitionApproximator = new ActionPartitionApproximator(approximator);
 
 var engine = new ApproximationEngine(
     resolver,
     requestBuilder,
     approximator,
     ordering,
-    rankingProfileSelector);
+    rankingProfileSelector,
+    partitionApproximator);
 
 var writer = new RangeFileWriter();
 

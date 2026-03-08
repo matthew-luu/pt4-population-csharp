@@ -36,7 +36,7 @@ public sealed class TopDownRangeApproximator
 
         ArgumentNullException.ThrowIfNull(profile);
 
-        var orderedCandidates = BuildOrderedCandidates(profile, candidateUniverse, direction);
+        var orderedCandidates = GetOrderedCandidates(profile, candidateUniverse, direction);
         var universeCombos = orderedCandidates.Sum(GetWeightedCombos);
 
         if (targetCombos > universeCombos)
@@ -82,11 +82,13 @@ public sealed class TopDownRangeApproximator
             Cells: selected);
     }
 
-    private static List<RangeCell> BuildOrderedCandidates(
+    public List<RangeCell> GetOrderedCandidates(
         RankingProfile profile,
         IReadOnlyList<RangeCell>? candidateUniverse,
-        SelectionDirection direction)
+        SelectionDirection direction = SelectionDirection.StrongestFirst)
     {
+        ArgumentNullException.ThrowIfNull(profile);
+
         List<RangeCell> ordered;
 
         if (candidateUniverse is null)
