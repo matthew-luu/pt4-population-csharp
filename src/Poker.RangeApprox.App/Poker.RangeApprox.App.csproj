@@ -13,6 +13,5 @@
 		<ProjectReference Include="..\Poker.RangeApprox.Infrastructure\Poker.RangeApprox.Infrastructure.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<None Include="..\..\x64\Debug\Poker.RangeApprox.Equity.Native.dll" Link="Poker.RangeApprox.Equity.Native.dll" CopyToOutputDirectory="PreserveNewest" />
-	</ItemGroup>
-</Project>
+		<None Include="..\..\x64\$(Configuration)\Poker.RangeApprox.Equity.Native.dll" Link="Poker.RangeApprox.Equity.Native.dll" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup></Project>
