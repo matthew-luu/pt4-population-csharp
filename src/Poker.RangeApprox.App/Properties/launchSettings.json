@@ -2,7 +2,7 @@
   "profiles": {
     "RangeApprox": {
       "commandName": "Project",
-      "commandLineArgs": "\"C:\\Program Files\\GTO\\config\\prefloprankings.txt\" \"D:\\pt4-population-sql\\Exported Reports\\population.csv"
+      "commandLineArgs": "\"C:\\Program Files\\GTO\\config\\prefloprankings.txt\" \"D:\\pt4-population-sql\\Exported Reports\\population.csv\" all"
     }
   }
 }
