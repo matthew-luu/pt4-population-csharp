@@ -169,14 +169,16 @@ void Write(PopulationNode node, ApproximationResult result)
     // -------------------------
     // Facing open
     // -------------------------
-    if (action == "call" || action == "fold" || action == "threebet")
+    if (action is "call" or "fold" or "threebet")
     {
         if (!string.IsNullOrWhiteSpace(opponent) &&
             !opponent.StartsWith("3bet_", StringComparison.OrdinalIgnoreCase))
         {
+            var actionName = NormalizeFacingOpenAction(action);
+
             return (
                 Path.Combine("output", "facing open", $"vs {opponent}"),
-                NormalizeFacingOpenAction(action)
+                $"{actionName}_{actor}"
             );
         }
     }
@@ -188,11 +190,11 @@ void Write(PopulationNode node, ApproximationResult result)
     {
         return (
             Path.Combine("output", "facing 3bet", $"vs {opponent}"),
-            "raise"
+            $"raise_{actor}"
         );
     }
 
-    if (action == "call" || action == "fold")
+    if (action is "call" or "fold")
     {
         if (!string.IsNullOrWhiteSpace(opponent) &&
             opponent.StartsWith("3bet_", StringComparison.OrdinalIgnoreCase))
@@ -201,7 +203,7 @@ void Write(PopulationNode node, ApproximationResult result)
 
             return (
                 Path.Combine("output", "facing 3bet", $"vs {opp}"),
-                action
+                $"{action}_{actor}"
             );
         }
     }
