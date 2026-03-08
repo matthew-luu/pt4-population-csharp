@@ -1,5 +1,4 @@
 ﻿using Poker.RangeApprox.Core.Domain;
-using System.Globalization;
 
 namespace Poker.RangeApprox.Equity.OMPEval;
 
@@ -12,7 +11,6 @@ internal static class WeightedRangeSerializer
         return string.Join(",",
             range
                 .Where(c => c.Weight > 0)
-                .Select(c =>
-                    $"{c.HandClass.ToEquilabToken()}:{c.Weight.ToString("0.################", CultureInfo.InvariantCulture)}"));
+                .Select(c => c.HandClass.ToEquilabToken()));
     }
 }

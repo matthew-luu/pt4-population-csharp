@@ -108,8 +108,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;POKERRANGEAPPROXEQUITYNATIVE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(ProjectDir)third_party\OMPEval;$(ProjectDir)third_party\OMPEval\omp;$(ProjectDir)third_party\OMPEval\libdivide;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -138,9 +140,18 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="pra_exports.h" />
+    <ClInclude Include="third_party\OMPEval\omp\CardRange.h" />
+    <ClInclude Include="third_party\OMPEval\omp\CombinedRange.h" />
+    <ClInclude Include="third_party\OMPEval\omp\Constants.h" />
+    <ClInclude Include="third_party\OMPEval\omp\EquityCalculator.h" />
+    <ClInclude Include="third_party\OMPEval\omp\Hand.h" />
+    <ClInclude Include="third_party\OMPEval\omp\HandEvaluator.h" />
+    <ClInclude Include="third_party\OMPEval\omp\Random.h" />
+    <ClInclude Include="third_party\OMPEval\omp\Util.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="ompeval_adapter.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -148,6 +159,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="pra_exports.cpp" />
+    <ClCompile Include="third_party\OMPEval\omp\CardRange.cpp" />
+    <ClCompile Include="third_party\OMPEval\omp\CombinedRange.cpp" />
+    <ClCompile Include="third_party\OMPEval\omp\EquityCalculator.cpp" />
+    <ClCompile Include="third_party\OMPEval\omp\HandEvaluator.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
