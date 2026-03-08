@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3A6B98A9
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Poker.RangeApprox.Tests", "tests\Poker.RangeApprox.Tests\Poker.RangeApprox.Tests.csproj", "{C1EBC2AE-2EA4-02C2-EC17-0D580935D6EB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Poker.RangeApprox.Equity", "src\Poker.RangeApprox.Equity\Poker.RangeApprox.Equity.csproj", "{0EAB6762-ECA4-54D0-496D-A99A2FAC19B4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,6 +39,10 @@ Global
 		{C1EBC2AE-2EA4-02C2-EC17-0D580935D6EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1EBC2AE-2EA4-02C2-EC17-0D580935D6EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C1EBC2AE-2EA4-02C2-EC17-0D580935D6EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0EAB6762-ECA4-54D0-496D-A99A2FAC19B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0EAB6762-ECA4-54D0-496D-A99A2FAC19B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0EAB6762-ECA4-54D0-496D-A99A2FAC19B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0EAB6762-ECA4-54D0-496D-A99A2FAC19B4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,6 +52,7 @@ Global
 		{176715D7-23DF-677E-3E39-DABD75D122D9} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{5AFDE8AA-57C1-1A37-09EF-5C87C82D12AC} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{C1EBC2AE-2EA4-02C2-EC17-0D580935D6EB} = {3A6B98A9-773F-4390-A4F5-5FD8B5E68028}
+		{0EAB6762-ECA4-54D0-496D-A99A2FAC19B4} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {80B7EE5C-A860-47C4-BD35-004952697D9B}

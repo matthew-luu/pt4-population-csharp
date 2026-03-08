@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Poker.RangeApprox.Core\Poker.RangeApprox.Core.csproj" />
+  </ItemGroup>
+
 </Project>

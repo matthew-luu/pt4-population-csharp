@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Poker.RangeApprox.Core\Poker.RangeApprox.Core.csproj" />
+    <ProjectReference Include="..\Poker.RangeApprox.Equity\Poker.RangeApprox.Equity.csproj" />
     <ProjectReference Include="..\Poker.RangeApprox.Infrastructure\Poker.RangeApprox.Infrastructure.csproj" />
   </ItemGroup>
 
