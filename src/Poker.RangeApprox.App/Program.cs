@@ -139,15 +139,86 @@ void Write(PopulationNode node, ApproximationResult result)
     var equilab = EquilabFormatter.FormatExplicit(result.Cells);
     var matrix = MatrixFormatter.Format(result.Cells);
 
-    var dir = Path.Combine("output", node.NodeId.ToKey());
+    var (directory, fileName) = GetOutputPath(node.NodeId);
 
-    writer.WriteEquilab(Path.Combine(dir, "range.txt"), result.Cells);
-    writer.WriteMatrix(Path.Combine(dir, "range_matrix.txt"), result.Cells);
+    writer.WriteEquilab(Path.Combine(directory, $"{fileName}.txt"), result.Cells);
+    writer.WriteMatrix(Path.Combine(directory, $"{fileName}_matrix.txt"), result.Cells);
 
     Console.WriteLine($"Node: {node.NodeId.ToKey()}");
-    Console.WriteLine($"Freq: {node.Frequency:0.##}%");
-    Console.WriteLine($"Target: {result.TargetCombos:0.##} combos");
-    Console.WriteLine($"Actual: {result.ActualCombos:0.##} combos");
-    Console.WriteLine($"Output: {dir}");
+    Console.WriteLine($"Output: {Path.Combine(directory, fileName)}");
     Console.WriteLine();
+}
+
+(string Directory, string FileName) GetOutputPath(NodeId nodeId)
+{
+    var action = nodeId.Action.Trim().ToLowerInvariant();
+    var actor = nodeId.Actor.Trim().ToLowerInvariant();
+    var opponent = nodeId.Opponent?.Trim().ToLowerInvariant();
+
+    // -------------------------
+    // RFI
+    // -------------------------
+    if (action == "rfi")
+    {
+        return (
+            Path.Combine("output", "rfi"),
+            actor
+        );
+    }
+
+    // -------------------------
+    // Facing open
+    // -------------------------
+    if (action == "call" || action == "fold" || action == "threebet")
+    {
+        if (!string.IsNullOrWhiteSpace(opponent) &&
+            !opponent.StartsWith("3bet_", StringComparison.OrdinalIgnoreCase))
+        {
+            return (
+                Path.Combine("output", "facing open", $"vs {opponent}"),
+                NormalizeFacingOpenAction(action)
+            );
+        }
+    }
+
+    // -------------------------
+    // Facing 3bet
+    // -------------------------
+    if (action == "fourbet")
+    {
+        return (
+            Path.Combine("output", "facing 3bet", $"vs {opponent}"),
+            "raise"
+        );
+    }
+
+    if (action == "call" || action == "fold")
+    {
+        if (!string.IsNullOrWhiteSpace(opponent) &&
+            opponent.StartsWith("3bet_", StringComparison.OrdinalIgnoreCase))
+        {
+            var opp = opponent.Replace("3bet_", "");
+
+            return (
+                Path.Combine("output", "facing 3bet", $"vs {opp}"),
+                action
+            );
+        }
+    }
+
+    return (
+        Path.Combine("output", "misc"),
+        nodeId.ToKey()
+    );
+}
+
+string NormalizeFacingOpenAction(string action)
+{
+    return action switch
+    {
+        "threebet" => "raise",
+        "call" => "call",
+        "fold" => "fold",
+        _ => action
+    };
 }
