@@ -52,6 +52,10 @@ public static class NodeSpotHelper
         var actor = Normalize(nodeId.Actor);
         var opponent = NormalizeNullable(nodeId.Opponent);
 
+        if (string.IsNullOrWhiteSpace(actor))
+            throw new InvalidOperationException(
+                $"Node '{nodeId.ToKey()}' does not have an actor and cannot be grouped into a partition spot.");
+
         if (string.IsNullOrWhiteSpace(opponent))
             throw new InvalidOperationException(
                 $"Node '{nodeId.ToKey()}' does not have an opponent and cannot be grouped into a partition spot.");

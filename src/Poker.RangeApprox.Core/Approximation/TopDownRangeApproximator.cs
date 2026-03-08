@@ -1,4 +1,4 @@
-﻿using Poker.RangeApprox.Core.Domain;
+﻿﻿using Poker.RangeApprox.Core.Domain;
 
 namespace Poker.RangeApprox.Core.Approximation;
 
@@ -101,11 +101,11 @@ public sealed class TopDownRangeApproximator
         {
             var candidateMap = candidateUniverse
                 .Where(c => c.Weight > 0)
+                .GroupBy(c => c.HandClass.ToEquilabToken(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(
-                    c => c.HandClass.ToEquilabToken(),
-                    c => c,
+                    g => g.Key,
+                    g => g.First(),
                     StringComparer.OrdinalIgnoreCase);
-
             ordered = new List<RangeCell>();
 
             foreach (var hand in profile.OrderedHands)

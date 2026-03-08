@@ -136,13 +136,10 @@ void RunAll(List<PopulationNode> populationNodes)
 
 void Write(PopulationNode node, ApproximationResult result)
 {
-    var equilab = EquilabFormatter.FormatExplicit(result.Cells);
-    var matrix = MatrixFormatter.Format(result.Cells);
-
     var (directory, fileName) = GetOutputPath(node.NodeId);
 
     writer.WriteEquilab(Path.Combine(directory, $"{fileName}.txt"), result.Cells);
-    writer.WriteMatrix(Path.Combine(directory, $"{fileName}_matrix.txt"), result.Cells);
+    if(false)   writer.WriteMatrix(Path.Combine(directory, $"{fileName}_matrix.txt"), result.Cells);
 
     Console.WriteLine($"Node: {node.NodeId.ToKey()}");
     Console.WriteLine($"Output: {Path.Combine(directory, fileName)}");
