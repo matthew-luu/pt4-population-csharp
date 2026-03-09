@@ -66,7 +66,15 @@ public static class AppBootstrapper
 
         var rakeProfile = new ExploitRakeProfile(
             Percent: 0.05,
-            CapBb: 150);
+            CapBb: 150.0);
+
+        var realizationProfile = new ExploitRealizationProfile(
+            SingleRaisedIp: 0.90,
+            SingleRaisedOop: 0.78,
+            ThreeBetCallIp: 0.84,
+            ThreeBetCallOop: 0.72,
+            FourBetCallIp: 0.87,
+            FourBetCallOop: 0.76);
 
         var exploitSizing = new ExploitSizingProfile(
             OpenSize: 2.5,
@@ -75,7 +83,8 @@ public static class AppBootstrapper
             FiveBetSize: 100.0,
             SmallBlind: 0.5,
             BigBlind: 1.0,
-            Rake: rakeProfile);
+            Rake: rakeProfile,
+            Realization: realizationProfile);
 
         return new AppContext(
             Options: options,
