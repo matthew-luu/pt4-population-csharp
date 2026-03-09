@@ -11,20 +11,18 @@ public sealed class CallingSuperRangeBuilder
         ArgumentNullException.ThrowIfNull(sourceNodes);
         ArgumentNullException.ThrowIfNull(approximationResults);
 
-        var callVsOpenNodes = sourceNodes
-            .Where(IsCallVsOpenNode)
+        var callNodes = sourceNodes
+            .Where(IsCallNodeForSuperRange)
             .ToList();
 
-        var groupedByOpenPosition = callVsOpenNodes
-            .GroupBy(
-                n => NormalizeOpponent(n.NodeId.Opponent!),
-                StringComparer.OrdinalIgnoreCase);
+        var grouped = callNodes
+            .GroupBy(GetSuperRangeKey, StringComparer.OrdinalIgnoreCase);
 
         var results = new Dictionary<string, WeightedSuperRangeResult>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var group in groupedByOpenPosition)
+        foreach (var group in grouped)
         {
-            var openPosition = group.Key;
+            var key = group.Key;
             var sourceRangeCount = group.Count();
 
             var accumulators = new Dictionary<string, CellAccumulator>(StringComparer.OrdinalIgnoreCase);
@@ -71,11 +69,9 @@ public sealed class CallingSuperRangeBuilder
                 ? 0
                 : totalContributionCombos / sourceRangeCount;
 
-            var key = $"call_super_vs_{openPosition}";
-
             results[key] = new WeightedSuperRangeResult(
                 Key: key,
-                OpenPosition: openPosition,
+                OpenPosition: key,
                 SourceRangeCount: sourceRangeCount,
                 TotalContributionCombos: totalContributionCombos,
                 AverageCombosPerSourceRange: averageCombosPerSourceRange,
@@ -85,27 +81,24 @@ public sealed class CallingSuperRangeBuilder
         return results;
     }
 
-    private static bool IsCallVsOpenNode(PopulationNode node)
+    private static bool IsCallNodeForSuperRange(PopulationNode node)
     {
         ArgumentNullException.ThrowIfNull(node);
 
-        var nodeId = node.NodeId;
-
-        if (!NodeSpotHelper.IsCallAction(nodeId))
-            return false;
-
-        if (string.IsNullOrWhiteSpace(nodeId.Opponent))
-            return false;
-
-        if (NodeSpotHelper.IsVsThreeBetSpot(nodeId))
-            return false;
-
-        return true;
+        return NodeSpotHelper.IsCallAction(node.NodeId)
+            && !string.IsNullOrWhiteSpace(node.NodeId.Opponent);
     }
 
-    private static string NormalizeOpponent(string opponent)
+    private static string GetSuperRangeKey(PopulationNode node)
     {
-        return opponent.Trim().ToLowerInvariant();
+        var opponent = Normalize(node.NodeId.Opponent!);
+
+        return $"call_super_vs_{opponent}";
+    }
+
+    private static string Normalize(string value)
+    {
+        return value.Trim().ToLowerInvariant();
     }
 
     private sealed class CellAccumulator

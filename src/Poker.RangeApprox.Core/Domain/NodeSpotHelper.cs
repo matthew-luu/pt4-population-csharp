@@ -8,7 +8,12 @@ public static class NodeSpotHelper
 
         var action = Normalize(nodeId.Action);
 
-        return action is "call" or "fold" or "threebet" or "fourbet";
+        return action is
+            "call" or
+            "fold" or
+            "threebet" or
+            "fourbet" or
+            "fivebet";
     }
 
     public static bool IsAggressiveAction(NodeId nodeId)
@@ -16,7 +21,11 @@ public static class NodeSpotHelper
         ArgumentNullException.ThrowIfNull(nodeId);
 
         var action = Normalize(nodeId.Action);
-        return action is "threebet" or "fourbet";
+
+        return action is
+            "threebet" or
+            "fourbet" or
+            "fivebet";
     }
 
     public static bool IsCallAction(NodeId nodeId)
@@ -35,14 +44,20 @@ public static class NodeSpotHelper
     {
         ArgumentNullException.ThrowIfNull(nodeId);
 
-        var action = Normalize(nodeId.Action);
         var opponent = NormalizeNullable(nodeId.Opponent);
 
-        if (action == "fourbet")
-            return true;
+        return !string.IsNullOrWhiteSpace(opponent)
+            && opponent.StartsWith("threebet_", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool IsVsFourBetSpot(NodeId nodeId)
+    {
+        ArgumentNullException.ThrowIfNull(nodeId);
+
+        var opponent = NormalizeNullable(nodeId.Opponent);
 
         return !string.IsNullOrWhiteSpace(opponent)
-            && opponent.StartsWith("3bet_", StringComparison.OrdinalIgnoreCase);
+            && opponent.StartsWith("fourbet_", StringComparison.OrdinalIgnoreCase);
     }
 
     public static string ToSpotKey(NodeId nodeId)
@@ -53,19 +68,15 @@ public static class NodeSpotHelper
         var opponent = NormalizeNullable(nodeId.Opponent);
 
         if (string.IsNullOrWhiteSpace(actor))
+        {
             throw new InvalidOperationException(
                 $"Node '{nodeId.ToKey()}' does not have an actor and cannot be grouped into a partition spot.");
+        }
 
         if (string.IsNullOrWhiteSpace(opponent))
+        {
             throw new InvalidOperationException(
                 $"Node '{nodeId.ToKey()}' does not have an opponent and cannot be grouped into a partition spot.");
-
-        // Normalize fourbet_lj_vs_hj to the same family as:
-        // call_lj_vs_3bet_hj
-        // fold_lj_vs_3bet_hj
-        if (Normalize(nodeId.Action) == "fourbet" && !opponent.StartsWith("3bet_", StringComparison.OrdinalIgnoreCase))
-        {
-            opponent = $"3bet_{opponent}";
         }
 
         return $"{actor}_vs_{opponent}";

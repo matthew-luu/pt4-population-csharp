@@ -11,6 +11,14 @@ var mode = args.Length > 2 ? args[2].ToLowerInvariant() : "rfi";
 var nodeKey = args.Length > 3 ? args[3] : null;
 var requestedProfileName = args.Length > 4 ? args[4] : null;
 
+var runTimestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+var outputRoot = Path.Combine("output", runTimestamp);
+
+Directory.CreateDirectory(outputRoot);
+
+Console.WriteLine($"Run directory: {outputRoot}");
+Console.WriteLine();
+
 var rankingParser = new RankingFileParser();
 var profiles = rankingParser.Parse(rankingFilePath);
 
@@ -144,7 +152,7 @@ void RunAll(List<PopulationNode> populationNodes)
     }
 
     var callingSuperRanges = callingSuperRangeBuilder.Build(populationNodes, results);
-    weightedSuperRangeWriter.WriteAll("output", callingSuperRanges);
+    weightedSuperRangeWriter.WriteAll(outputRoot, callingSuperRanges);
 
     Console.WriteLine($"Generating {callingSuperRanges.Count} weighted calling super-ranges");
     Console.WriteLine();
@@ -152,7 +160,7 @@ void RunAll(List<PopulationNode> populationNodes)
     foreach (var superRange in callingSuperRanges.Values.OrderBy(x => x.OpenPosition, StringComparer.OrdinalIgnoreCase))
     {
         Console.WriteLine($"Super-range: {superRange.Key}");
-        Console.WriteLine($"Output: {Path.Combine("output", "calling super-ranges", superRange.Key)}");
+        Console.WriteLine($"Output: {Path.Combine(outputRoot, "calling super-ranges", superRange.Key)}");
         Console.WriteLine();
     }
 
@@ -164,7 +172,7 @@ void RunRankSuperCalls(List<PopulationNode> populationNodes)
     var results = engine.RunAll(populationNodes, profiles, requestedProfileName);
     var callingSuperRanges = callingSuperRangeBuilder.Build(populationNodes, results);
 
-    weightedSuperRangeWriter.WriteAll("output", callingSuperRanges);
+    weightedSuperRangeWriter.WriteAll(outputRoot, callingSuperRanges);
     WriteSuperCallRankings(callingSuperRanges);
 
     Console.WriteLine($"Generated {callingSuperRanges.Count} calling super-ranges and rankings.");
@@ -179,17 +187,17 @@ void WriteSuperCallRankings(IReadOnlyDictionary<string, WeightedSuperRangeResult
         WriteHandRanking(superRange.Key, ranking);
 
         Console.WriteLine($"Ranking: {superRange.Key}");
-        Console.WriteLine($"Output: {Path.Combine("output", "rankings", "vs call super", $"{superRange.Key}.txt")}");
+        Console.WriteLine($"Output: {Path.Combine(outputRoot, "rankings", "vs call super", $"{superRange.Key}.txt")}");
         Console.WriteLine();
     }
 }
 
 void WriteHandRanking(string key, IReadOnlyList<HandEquityResult> ranking)
 {
-    var directory = Path.Combine("output", "rankings", "vs call super");
+    var directory = Path.Combine(outputRoot, "rankings", "vs call super");
     Directory.CreateDirectory(directory);
 
-    var path = Path.Combine(directory, $"{key}.txt");
+    var path = Path.Combine(directory, $"ranking_vs_{key}.txt");
     var content = HandEquityResultFormatter.Format(ranking);
 
     File.WriteAllText(path, content);
@@ -216,7 +224,7 @@ void Write(PopulationNode node, ApproximationResult result)
     if (action == "rfi")
     {
         return (
-            Path.Combine("output", "rfi"),
+            Path.Combine(outputRoot, "rfi"),
             actor
         );
     }
@@ -224,41 +232,48 @@ void Write(PopulationNode node, ApproximationResult result)
     if (action is "call" or "fold" or "threebet")
     {
         if (!string.IsNullOrWhiteSpace(opponent) &&
-            !opponent.StartsWith("3bet_", StringComparison.OrdinalIgnoreCase))
+            !opponent.StartsWith("threebet_", StringComparison.OrdinalIgnoreCase) &&
+            !opponent.StartsWith("fourbet_", StringComparison.OrdinalIgnoreCase))
         {
             var actionName = NormalizeFacingOpenAction(action);
 
             return (
-                Path.Combine("output", "facing open", $"vs {opponent}"),
+                Path.Combine(outputRoot, "facing open", $"vs {opponent}"),
                 $"{actionName}_{actor}"
             );
         }
     }
 
-    if (action == "fourbet")
-    {
-        return (
-            Path.Combine("output", "facing 3bet", $"vs {opponent}"),
-            $"raise_{actor}"
-        );
-    }
-
-    if (action is "call" or "fold")
+    if (action is "call" or "fold" or "fourbet")
     {
         if (!string.IsNullOrWhiteSpace(opponent) &&
-            opponent.StartsWith("3bet_", StringComparison.OrdinalIgnoreCase))
+            opponent.StartsWith("threebet_", StringComparison.OrdinalIgnoreCase))
         {
-            var opp = opponent.Replace("3bet_", "");
+            var opp = opponent.Replace("threebet_", "");
 
             return (
-                Path.Combine("output", "facing 3bet", $"vs {opp}"),
-                $"{action}_{actor}"
+                Path.Combine(outputRoot, "facing 3bet", $"vs {opp}"),
+                $"{NormalizeFacingThreeBetAction(action)}_{actor}"
+            );
+        }
+    }
+
+    if (action is "call" or "fold" or "fivebet")
+    {
+        if (!string.IsNullOrWhiteSpace(opponent) &&
+            opponent.StartsWith("fourbet_", StringComparison.OrdinalIgnoreCase))
+        {
+            var opp = opponent.Replace("fourbet_", "");
+
+            return (
+                Path.Combine(outputRoot, "facing 4bet", $"vs {opp}"),
+                $"{NormalizeFacingFourBetAction(action)}_{actor}"
             );
         }
     }
 
     return (
-        Path.Combine("output", "misc"),
+        Path.Combine(outputRoot, "misc"),
         nodeId.ToKey()
     );
 }
@@ -268,6 +283,28 @@ string NormalizeFacingOpenAction(string action)
     return action switch
     {
         "threebet" => "raise",
+        "call" => "call",
+        "fold" => "fold",
+        _ => action
+    };
+}
+
+string NormalizeFacingThreeBetAction(string action)
+{
+    return action switch
+    {
+        "fourbet" => "raise",
+        "call" => "call",
+        "fold" => "fold",
+        _ => action
+    };
+}
+
+string NormalizeFacingFourBetAction(string action)
+{
+    return action switch
+    {
+        "fivebet" => "raise",
         "call" => "call",
         "fold" => "fold",
         _ => action
