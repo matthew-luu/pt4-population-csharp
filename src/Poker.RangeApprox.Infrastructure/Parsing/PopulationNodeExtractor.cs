@@ -67,11 +67,11 @@ public sealed class PopulationNodeExtractor
         // anything with _vs_
         // examples:
         // call_co_vs_lj
-        // 3bet_btn_vs_co
+        // threebet_btn_vs_co
         // fold_btn_vs_co
-        // call_btn_vs_3bet_sb
-        // 4bet_btn_vs_3bet_sb
-        // fold_btn_vs_3bet_sb
+        // call_btn_vs_threebet_sb
+        // fourbet_btn_vs_threebet_sb
+        // fold_btn_vs_threebet_sb
         var vsIndex = normalized.IndexOf("_vs_", StringComparison.Ordinal);
         if (vsIndex >= 0)
         {
@@ -81,7 +81,7 @@ public sealed class PopulationNodeExtractor
             var leftParts = left.Split('_', StringSplitOptions.RemoveEmptyEntries);
 
             // left side should be: action_actor
-            // example: call_btn, 3bet_co, fold_sb, 4bet_btn
+            // example: call_btn, threebet_co, fold_sb, fourbet_btn
             if (leftParts.Length == 2)
             {
                 var action = leftParts[0];
