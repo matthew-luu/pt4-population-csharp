@@ -1,4 +1,5 @@
-﻿using Poker.RangeApprox.Core.Approximation;
+﻿using Poker.RangeApprox.App.Execution;
+using Poker.RangeApprox.Core.Approximation;
 using Poker.RangeApprox.Core.Domain;
 using Poker.RangeApprox.Core.Equity;
 using Poker.RangeApprox.Infrastructure.Writing;
@@ -17,4 +18,5 @@ public sealed record AppContext(
     WeightedSuperRangeFileWriter WeightedSuperRangeWriter,
     HandVsRangeRankingService HandRankingService,
     ExploitEngine ExploitEngine,
-    ExploitSizingProfile ExploitSizing);
+    ExploitSizingProfile ExploitSizing,
+    IAppStatusWriter Status);

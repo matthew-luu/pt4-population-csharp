@@ -10,7 +10,7 @@ public static class ApproximationCommands
     {
         if (string.IsNullOrWhiteSpace(context.Options.NodeKey))
         {
-            Console.WriteLine("single mode requires a node key.");
+            context.Status.WriteLine("single mode requires a node key.");
             return;
         }
 
@@ -19,7 +19,7 @@ public static class ApproximationCommands
 
         if (node is null)
         {
-            Console.WriteLine($"Node not found: {context.Options.NodeKey}");
+            context.Status.WriteLine($"Node not found: {context.Options.NodeKey}");
             return;
         }
 
@@ -30,7 +30,7 @@ public static class ApproximationCommands
 
         if (!results.TryGetValue(node.NodeId.ToKey(), out var result))
         {
-            Console.WriteLine($"No result generated for {node.NodeId.ToKey()}");
+            context.Status.WriteLine($"No result generated for {node.NodeId.ToKey()}");
             return;
         }
 
@@ -49,8 +49,8 @@ public static class ApproximationCommands
             context.Profiles,
             context.Options.RequestedProfileName);
 
-        Console.WriteLine($"Generating {rfiNodes.Count} RFI ranges");
-        Console.WriteLine();
+        context.Status.WriteLine($"Generating {rfiNodes.Count} RFI ranges");
+        context.Status.WriteLine();
 
         foreach (var node in rfiNodes)
         {
@@ -68,8 +68,8 @@ public static class ApproximationCommands
             context.Profiles,
             context.Options.RequestedProfileName);
 
-        Console.WriteLine($"Generating {results.Count} ranges");
-        Console.WriteLine();
+        context.Status.WriteLine($"Generating {results.Count} ranges");
+        context.Status.WriteLine();
 
         foreach (var node in context.Nodes)
         {
@@ -82,14 +82,14 @@ public static class ApproximationCommands
         var callingSuperRanges = context.CallingSuperRangeBuilder.Build(context.Nodes, results);
         context.WeightedSuperRangeWriter.WriteAll(context.OutputRoot, callingSuperRanges);
 
-        Console.WriteLine($"Generating {callingSuperRanges.Count} weighted calling super-ranges");
-        Console.WriteLine();
+        context.Status.WriteLine($"Generating {callingSuperRanges.Count} weighted calling super-ranges");
+        context.Status.WriteLine();
 
         foreach (var superRange in callingSuperRanges.Values.OrderBy(x => x.OpenPosition, StringComparer.OrdinalIgnoreCase))
         {
-            Console.WriteLine($"Super-range: {superRange.Key}");
-            Console.WriteLine($"Output: {Path.Combine(context.OutputRoot, "calling super-ranges", superRange.Key)}");
-            Console.WriteLine();
+            context.Status.WriteLine($"Super-range: {superRange.Key}");
+            context.Status.WriteLine($"Output: {Path.Combine(context.OutputRoot, "calling super-ranges", superRange.Key)}");
+            context.Status.WriteLine();
         }
 
         RankingCommands.WriteSuperCallRankings(context, callingSuperRanges);
@@ -107,7 +107,7 @@ public static class ApproximationCommands
         context.WeightedSuperRangeWriter.WriteAll(context.OutputRoot, callingSuperRanges);
         RankingCommands.WriteSuperCallRankings(context, callingSuperRanges);
 
-        Console.WriteLine($"Generated {callingSuperRanges.Count} calling super-ranges and rankings.");
-        Console.WriteLine();
+        context.Status.WriteLine($"Generated {callingSuperRanges.Count} calling super-ranges and rankings.");
+        context.Status.WriteLine();
     }
 }

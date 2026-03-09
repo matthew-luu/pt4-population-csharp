@@ -13,9 +13,9 @@ public static class RankingCommands
             var ranking = context.HandRankingService.RankAllHands(superRange.Cells);
             OutputWriters.WriteHandRanking(context, superRange.Key, ranking);
 
-            Console.WriteLine($"Ranking: {superRange.Key}");
-            Console.WriteLine($"Output: {Path.Combine(context.OutputRoot, "rankings", "vs call super", $"ranking_vs_{superRange.Key}.txt")}");
-            Console.WriteLine();
+            context.Status.WriteLine($"Ranking: {superRange.Key}");
+            context.Status.WriteLine($"Output: {Path.Combine(context.OutputRoot, "rankings", "vs call super", $"ranking_vs_{superRange.Key}.txt")}");
+            context.Status.WriteLine();
         }
     }
 }

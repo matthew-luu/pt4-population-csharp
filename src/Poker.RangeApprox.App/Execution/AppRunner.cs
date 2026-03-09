@@ -35,7 +35,7 @@ public static class AppRunner
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            context.Status.WriteLine(ex.Message);
             return 1;
         }
     }

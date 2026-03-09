@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Poker.RangeApprox.App\Poker.RangeApprox.App.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\..\x64\$(Configuration)\Poker.RangeApprox.Equity.Native.dll"
+			  Link="Poker.RangeApprox.Equity.Native.dll"
+			  CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>

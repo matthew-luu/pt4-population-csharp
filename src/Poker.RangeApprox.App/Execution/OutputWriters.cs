@@ -30,9 +30,9 @@ public static class OutputWriters
 
         context.RangeWriter.WriteEquilab(Path.Combine(directory, $"{fileName}.txt"), result.Cells);
 
-        Console.WriteLine($"Node: {node.NodeId.ToKey()}");
-        Console.WriteLine($"Output: {Path.Combine(directory, fileName)}");
-        Console.WriteLine();
+        context.Status.WriteLine($"Node: {node.NodeId.ToKey()}");
+        context.Status.WriteLine($"Output: {Path.Combine(directory, fileName)}");
+        context.Status.WriteLine();
     }
 
     public static void WriteExploitSpot(

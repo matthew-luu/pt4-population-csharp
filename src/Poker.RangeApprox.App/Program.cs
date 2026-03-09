@@ -8,7 +8,7 @@ public static class Program
     public static int Main(string[] args)
     {
         var options = AppOptions.Parse(args);
-        var context = AppBootstrapper.Build(options);
+        var context = AppBootstrapper.Build(options, new ConsoleStatusWriter());
 
         return AppRunner.Run(context);
     }
