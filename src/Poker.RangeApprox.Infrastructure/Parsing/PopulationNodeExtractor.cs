@@ -27,6 +27,9 @@ public sealed class PopulationNodeExtractor
             if (MetadataColumns.Contains(columnName))
                 continue;
 
+            if (columnName.EndsWith("_opp", StringComparison.OrdinalIgnoreCase))
+                continue;
+
             if (!double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var frequency))
                 continue;
 
@@ -47,7 +50,6 @@ public sealed class PopulationNodeExtractor
     {
         var normalized = columnName.Trim().ToLowerInvariant();
 
-        // rfi_btn
         if (normalized.StartsWith("rfi_"))
         {
             var parts = normalized.Split('_', StringSplitOptions.RemoveEmptyEntries);
@@ -64,14 +66,6 @@ public sealed class PopulationNodeExtractor
             return null;
         }
 
-        // anything with _vs_
-        // examples:
-        // call_co_vs_lj
-        // threebet_btn_vs_co
-        // fold_btn_vs_co
-        // call_btn_vs_threebet_sb
-        // fourbet_btn_vs_threebet_sb
-        // fold_btn_vs_threebet_sb
         var vsIndex = normalized.IndexOf("_vs_", StringComparison.Ordinal);
         if (vsIndex >= 0)
         {
@@ -80,8 +74,6 @@ public sealed class PopulationNodeExtractor
 
             var leftParts = left.Split('_', StringSplitOptions.RemoveEmptyEntries);
 
-            // left side should be: action_actor
-            // example: call_btn, threebet_co, fold_sb, fourbet_btn
             if (leftParts.Length == 2)
             {
                 var action = leftParts[0];

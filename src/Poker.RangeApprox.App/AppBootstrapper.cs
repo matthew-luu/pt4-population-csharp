@@ -32,7 +32,10 @@ public static class AppBootstrapper
             throw new InvalidOperationException("No CSV rows found.");
 
         var extractor = new PopulationNodeExtractor();
+        var opportunityExtractor = new PopulationOpportunityExtractor();
+
         var nodes = extractor.Extract(rows[0]);
+        var opportunities = opportunityExtractor.Extract(rows[0]);
 
         if (nodes.Count == 0)
             throw new InvalidOperationException("No nodes extracted from CSV.");
@@ -73,6 +76,7 @@ public static class AppBootstrapper
             OutputRoot: outputRoot,
             Profiles: profiles,
             Nodes: nodes,
+            Opportunities: opportunities,
             ApproximationEngine: approximationEngine,
             RangeWriter: rangeWriter,
             CallingSuperRangeBuilder: callingSuperRangeBuilder,

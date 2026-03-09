@@ -10,6 +10,7 @@ public sealed record AppContext(
     string OutputRoot,
     IReadOnlyList<RankingProfile> Profiles,
     List<PopulationNode> Nodes,
+    PopulationOpportunityProfile Opportunities,
     ApproximationEngine ApproximationEngine,
     RangeFileWriter RangeWriter,
     CallingSuperRangeBuilder CallingSuperRangeBuilder,
