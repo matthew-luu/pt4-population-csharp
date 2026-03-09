@@ -67,6 +67,9 @@ public sealed class PopulationOpportunityExtractor
             return false;
         }
 
+        if (columnName.Length < prefix.Length + suffix.Length)
+            return false;
+
         var inner = columnName[prefix.Length..^suffix.Length].Trim();
         if (string.IsNullOrWhiteSpace(inner))
             return false;
