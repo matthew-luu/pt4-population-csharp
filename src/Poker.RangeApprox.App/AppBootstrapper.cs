@@ -63,13 +63,19 @@ public static class AppBootstrapper
         var handRankingService = new HandVsRangeRankingService(equityCalculator);
 
         var exploitEngine = new ExploitEngine(equityCalculator);
+
+        var rakeProfile = new ExploitRakeProfile(
+            Percent: 0.05,
+            CapBb: 150);
+
         var exploitSizing = new ExploitSizingProfile(
             OpenSize: 2.5,
             ThreeBetSize: 8.5,
             FourBetSize: 23.0,
             FiveBetSize: 100.0,
             SmallBlind: 0.5,
-            BigBlind: 1.0);
+            BigBlind: 1.0,
+            Rake: rakeProfile);
 
         return new AppContext(
             Options: options,
