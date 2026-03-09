@@ -4,6 +4,6 @@
     <DebuggerFlavor>ProjectDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup>
-    <ActiveDebugProfile>TestCsv</ActiveDebugProfile>
+    <ActiveDebugProfile>ExploitOpen</ActiveDebugProfile>
   </PropertyGroup>
 </Project>

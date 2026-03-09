@@ -10,7 +10,10 @@ public sealed class NodeDefinitionResolver
         var actor = Normalize(nodeId.Actor);
         var opponent = NormalizeNullable(nodeId.Opponent);
 
-        // RFI nodes are always from the full 1326-hand universe.
+        // ----------------------------------------
+        // RFI
+        // ----------------------------------------
+
         if (action == "rfi")
         {
             return new NodeDefinition(
@@ -20,14 +23,48 @@ public sealed class NodeDefinitionResolver
             );
         }
 
-        // Fourbet nodes are part of the defense-vs-3bet family and should be
-        // measured against the actor's original open range.
-        //
-        // Example:
-        // fourbet_lj_vs_hj  -> parent = rfi_lj
-        if (action == "fourbet")
+        if (string.IsNullOrWhiteSpace(opponent))
         {
-            var parentNodeId = new NodeId(
+            throw new InvalidOperationException(
+                $"Node '{nodeId.ToKey()}' does not specify an opponent.");
+        }
+
+        // ----------------------------------------
+        // VS FOURBET
+        // call_sb_vs_fourbet_btn
+        // fivebet_sb_vs_fourbet_btn
+        // fold_sb_vs_fourbet_btn
+        // ----------------------------------------
+
+        if (opponent.StartsWith("fourbet_", StringComparison.OrdinalIgnoreCase))
+        {
+            var opener = opponent.Replace("fourbet_", "");
+
+            var parentNode = new NodeId(
+                Action: "threebet",
+                Actor: actor,
+                Opponent: opener
+            );
+
+            return new NodeDefinition(
+                NodeId: new NodeId(action, actor, opponent),
+                FrequencyBasis: FrequencyBasis.ParentRange,
+                ParentNodeId: parentNode
+            );
+        }
+
+        // ----------------------------------------
+        // VS THREEBET
+        // call_btn_vs_threebet_sb
+        // fourbet_btn_vs_threebet_sb
+        // fold_btn_vs_threebet_sb
+        // ----------------------------------------
+
+        if (opponent.StartsWith("threebet_", StringComparison.OrdinalIgnoreCase))
+        {
+            var opener = opponent.Replace("threebet_", "");
+
+            var parentNode = new NodeId(
                 Action: "rfi",
                 Actor: actor,
                 Opponent: null
@@ -36,48 +73,22 @@ public sealed class NodeDefinitionResolver
             return new NodeDefinition(
                 NodeId: new NodeId(action, actor, opponent),
                 FrequencyBasis: FrequencyBasis.ParentRange,
-                ParentNodeId: parentNodeId
+                ParentNodeId: parentNode
             );
         }
 
-        // Nodes vs 3bet are percentages of the actor's prior opening range.
-        //
-        // Examples:
-        // call_btn_vs_3bet_sb
-        // fold_co_vs_3bet_btn
-        if (!string.IsNullOrWhiteSpace(opponent) &&
-            opponent.StartsWith("3bet_", StringComparison.OrdinalIgnoreCase))
-        {
-            var parentNodeId = new NodeId(
-                Action: "rfi",
-                Actor: actor,
-                Opponent: null
-            );
-
-            return new NodeDefinition(
-                NodeId: new NodeId(action, actor, opponent),
-                FrequencyBasis: FrequencyBasis.ParentRange,
-                ParentNodeId: parentNodeId
-            );
-        }
-
-        // Nodes vs open are chosen from the full hand universe.
-        //
-        // Examples:
-        // call_co_vs_lj
-        // threebet_btn_vs_co
+        // ----------------------------------------
+        // VS OPEN
+        // call_sb_vs_btn
+        // threebet_sb_vs_btn
         // fold_sb_vs_btn
-        if (!string.IsNullOrWhiteSpace(opponent))
-        {
-            return new NodeDefinition(
-                NodeId: new NodeId(action, actor, opponent),
-                FrequencyBasis: FrequencyBasis.FullUniverse,
-                ParentNodeId: null
-            );
-        }
+        // ----------------------------------------
 
-        throw new InvalidOperationException(
-            $"Could not resolve node definition for node '{nodeId.ToKey()}'.");
+        return new NodeDefinition(
+            NodeId: new NodeId(action, actor, opponent),
+            FrequencyBasis: FrequencyBasis.FullUniverse,
+            ParentNodeId: null
+        );
     }
 
     private static string Normalize(string value) => value.Trim().ToLowerInvariant();
