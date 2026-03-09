@@ -7,16 +7,28 @@ namespace Poker.RangeApprox.WinForms;
 
 public sealed class MainForm : Form
 {
-    private readonly TextBox _rankingPathTextBox = new() { Width = 500 };
-    private readonly TextBox _csvPathTextBox = new() { Width = 500 };
-    private readonly ComboBox _modeComboBox = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 180 };
-    private readonly ComboBox _nodeKeyComboBox = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
-    private readonly ComboBox _requestedProfileComboBox = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
-    private readonly TextBox _rakePercentTextBox = new() { Width = 100, Text = "0.05" };
-    private readonly TextBox _rakeCapBbTextBox = new() { Width = 100, Text = "150" };
-    private readonly TextBox _openSizeTextBox = new() { Width = 100, Text = "2.5" };
-    private readonly TextBox _threeBetSizeTextBox = new() { Width = 100, Text = "8.5" };
-    private readonly TextBox _fourBetSizeTextBox = new() { Width = 100, Text = "23" };
+    private const int RankingFileRow = 0;
+    private const int CsvFileRow = 1;
+    private const int ModeRow = 2;
+    private const int NodeKeyRow = 3;
+    private const int RequestedProfileRow = 4;
+    private const int RakePercentRow = 5;
+    private const int RakeCapRow = 6;
+    private const int OpenSizeRow = 7;
+    private const int ThreeBetSizeRow = 8;
+    private const int FourBetSizeRow = 9;
+    private const int OutputRootRow = 10;
+
+    private readonly TextBox _rankingPathTextBox = new();
+    private readonly TextBox _csvPathTextBox = new();
+    private readonly ComboBox _modeComboBox = new() { DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox _nodeKeyComboBox = new() { DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox _requestedProfileComboBox = new() { DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly TextBox _rakePercentTextBox = new() { Text = "0.05" };
+    private readonly TextBox _rakeCapBbTextBox = new() { Text = "150" };
+    private readonly TextBox _openSizeTextBox = new() { Text = "2.5" };
+    private readonly TextBox _threeBetSizeTextBox = new() { Text = "8.5" };
+    private readonly TextBox _fourBetSizeTextBox = new() { Text = "23" };
     private readonly TextBox _outputRootTextBox = new() { ReadOnly = true };
 
     private readonly TextBox _helpTextBox = new()
@@ -24,6 +36,7 @@ public sealed class MainForm : Form
         Multiline = true,
         ReadOnly = true,
         ScrollBars = ScrollBars.Vertical,
+        BorderStyle = BorderStyle.FixedSingle,
         Dock = DockStyle.Fill
     };
 
@@ -32,34 +45,47 @@ public sealed class MainForm : Form
         Multiline = true,
         ScrollBars = ScrollBars.Vertical,
         ReadOnly = true,
+        BorderStyle = BorderStyle.FixedSingle,
         Dock = DockStyle.Fill
     };
 
-    private readonly Button _runButton = new() { Text = "Run", Width = 120 };
-    private readonly Button _browseRankingButton = new() { Text = "Browse..." };
-    private readonly Button _browseCsvButton = new() { Text = "Browse..." };
-    private readonly ToolTip _toolTip = new();
+    private readonly Button _runButton = new() { Text = "Run", Width = 120, Height = 32 };
+    private readonly Button _browseRankingButton = new() { Text = "Browse...", Width = 90, Height = 30 };
+    private readonly Button _browseCsvButton = new() { Text = "Browse...", Width = 90, Height = 30 };
 
-    private readonly Label _nodeKeyLabel = new() { Text = "Node key", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 6, 8, 6) };
-    private readonly Label _requestedProfileLabel = new() { Text = "Requested profile", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 6, 8, 6) };
+    private readonly ToolTip _toolTip = new();
+    private readonly ErrorProvider _errorProvider = new();
+
+    private readonly Label _nodeKeyLabel = CreateFieldLabel("Node key");
+    private readonly Label _requestedProfileLabel = CreateFieldLabel("Requested profile");
 
     private readonly Panel _nodeKeySidePanel = new() { Width = 1, Height = 1 };
     private readonly Panel _requestedProfileSidePanel = new() { Width = 1, Height = 1 };
 
     private TableLayoutPanel? _inputLayout;
-    private TableLayoutPanel? _mainLayout;
+
+    private bool _rankingFileValid;
+    private bool _csvFileValid;
 
     public MainForm()
     {
         Text = "Poker Range Approx";
-        Width = 1200;
-        Height = 780;
+        Width = 1280;
+        Height = 820;
+        MinimumSize = new Size(1100, 700);
         StartPosition = FormStartPosition.CenterScreen;
+        BackColor = SystemColors.Control;
 
         _toolTip.AutoPopDelay = 15000;
         _toolTip.InitialDelay = 250;
         _toolTip.ReshowDelay = 100;
         _toolTip.ShowAlways = true;
+
+        _errorProvider.BlinkStyle = ErrorBlinkStyle.NeverBlink;
+
+        ConfigureControlSizes();
+        ConfigureEvents();
+        BuildLayout();
 
         _modeComboBox.Items.AddRange([
             "rfi",
@@ -73,20 +99,58 @@ public sealed class MainForm : Form
         _requestedProfileComboBox.Items.Add("(auto)");
         _requestedProfileComboBox.SelectedIndex = 0;
 
-        _browseRankingButton.Click += (_, _) => BrowseRankingFile();
-        _browseCsvButton.Click += (_, _) => BrowseCsvFile();
-        _runButton.Click += async (_, _) => await RunAnalysisAsync();
-        _modeComboBox.SelectedIndexChanged += (_, _) => UpdateDynamicFieldVisibility();
-
-        BuildLayout();
         BindHelpText();
+        RefreshRankingFileState();
+        RefreshCsvFileState();
         UpdateDynamicFieldVisibility();
         SetInitialHelpText();
     }
 
+    private void ConfigureControlSizes()
+    {
+        foreach (var control in new Control[]
+        {
+            _rankingPathTextBox,
+            _csvPathTextBox,
+            _modeComboBox,
+            _nodeKeyComboBox,
+            _requestedProfileComboBox,
+            _rakePercentTextBox,
+            _rakeCapBbTextBox,
+            _openSizeTextBox,
+            _threeBetSizeTextBox,
+            _fourBetSizeTextBox,
+            _outputRootTextBox
+        })
+        {
+            control.Dock = DockStyle.Fill;
+            control.Margin = new Padding(0, 2, 0, 2);
+            control.Font = new Font("Segoe UI", 9);
+        }
+
+        _browseRankingButton.Margin = new Padding(8, 1, 0, 1);
+        _browseCsvButton.Margin = new Padding(8, 1, 0, 1);
+        _runButton.Margin = new Padding(8, 1, 0, 1);
+
+        _helpTextBox.Font = new Font("Segoe UI", 10);
+        _statusTextBox.Font = new Font("Consolas", 10);
+    }
+
+    private void ConfigureEvents()
+    {
+        _browseRankingButton.Click += (_, _) => BrowseRankingFile();
+        _browseCsvButton.Click += (_, _) => BrowseCsvFile();
+        _runButton.Click += async (_, _) => await RunAnalysisAsync();
+
+        _modeComboBox.SelectedIndexChanged += (_, _) => UpdateDynamicFieldVisibility();
+
+        _rankingPathTextBox.TextChanged += (_, _) => RefreshRankingFileState();
+        _csvPathTextBox.TextChanged += (_, _) => RefreshCsvFileState();
+    }
+
     private void BuildLayout()
     {
-        _mainLayout = new TableLayoutPanel
+        var mainLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
@@ -94,58 +158,80 @@ public sealed class MainForm : Form
             Padding = new Padding(12)
         };
 
-        _mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 68));
-        _mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32));
+        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 68F));
+        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
         var leftPanel = BuildLeftPanel();
         var rightPanel = BuildRightPanel();
 
-        _mainLayout.Controls.Add(leftPanel, 0, 0);
-        _mainLayout.Controls.Add(rightPanel, 1, 0);
+        leftPanel.Margin = new Padding(0, 0, 12, 0);
+        rightPanel.Margin = new Padding(0);
 
-        Controls.Add(_mainLayout);
+        mainLayout.Controls.Add(leftPanel, 0, 0);
+        mainLayout.Controls.Add(rightPanel, 1, 0);
+
+        Controls.Add(mainLayout);
     }
 
     private Control BuildLeftPanel()
     {
-        var container = new TableLayoutPanel
+        var scrollPanel = new Panel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2
+            AutoScroll = true
         };
 
-        container.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
-        container.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+        var contentPanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink
+        };
+
+        var inputsGroup = new GroupBox
+        {
+            Text = "Inputs",
+            Dock = DockStyle.Top,
+            Padding = new Padding(12),
+            Font = new Font("Segoe UI", 10, FontStyle.Bold),
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink
+        };
 
         _inputLayout = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
             ColumnCount = 3,
             RowCount = 11,
-            AutoScroll = true
+            Margin = new Padding(0)
         };
 
         _inputLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         _inputLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         _inputLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
+        for (int i = 0; i < 11; i++)
+            _inputLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
         AddStandardRow(
-            0,
+            RankingFileRow,
             "Ranking file",
             _rankingPathTextBox,
             _browseRankingButton,
             "Text file containing hand ranking profiles used to approximate ranges.\r\n\r\nExample:\r\nprefloprankings.txt");
 
         AddStandardRow(
-            1,
+            CsvFileRow,
             "CSV file",
             _csvPathTextBox,
             _browseCsvButton,
             "Population CSV export from PokerTracker 4. The app reads node frequencies and opportunity counts from it.\r\n\r\nExample:\r\npopulation.csv");
 
         AddStandardRow(
-            2,
+            ModeRow,
             "Mode",
             _modeComboBox,
             new Panel(),
@@ -157,89 +243,66 @@ public sealed class MainForm : Form
             "exploit-open = run exploitative open analysis");
 
         AddCustomRow(
-            3,
+            NodeKeyRow,
             _nodeKeyLabel,
             _nodeKeyComboBox,
             _nodeKeySidePanel,
             "Used only in single mode to identify the exact node to generate.\r\n\r\nExamples:\r\nrfi_btn\r\ncall_sb_vs_btn\r\nfourbet_btn_vs_threebet_sb");
 
         AddCustomRow(
-            4,
+            RequestedProfileRow,
             _requestedProfileLabel,
             _requestedProfileComboBox,
             _requestedProfileSidePanel,
             "Optional ranking profile override. Leave as (auto) to use automatic profile selection.\r\n\r\nExample:\r\nPokerstove");
 
         AddStandardRow(
-            5,
+            RakePercentRow,
             "Rake percent",
             _rakePercentTextBox,
             new Panel(),
             "Rake percentage applied to flop-seen branches.\r\n\r\nExample:\r\n0.05 for 5%");
 
         AddStandardRow(
-            6,
+            RakeCapRow,
             "Rake cap (bb)",
             _rakeCapBbTextBox,
             new Panel(),
             "Maximum rake cap measured in big blinds.\r\n\r\nExample:\r\n150");
 
         AddStandardRow(
-            7,
+            OpenSizeRow,
             "Open size",
             _openSizeTextBox,
             new Panel(),
             "Open raise size in big blinds used by exploit analysis.\r\n\r\nExample:\r\n2.5");
 
         AddStandardRow(
-            8,
+            ThreeBetSizeRow,
             "3bet size",
             _threeBetSizeTextBox,
             new Panel(),
             "3bet size in big blinds used by exploit analysis.\r\n\r\nExample:\r\n8.5");
 
         AddStandardRow(
-            9,
+            FourBetSizeRow,
             "4bet size",
             _fourBetSizeTextBox,
             new Panel(),
             "4bet size in big blinds used by exploit analysis.\r\n\r\nExample:\r\n23");
 
         AddStandardRow(
-            10,
+            OutputRootRow,
             "Output root",
             _outputRootTextBox,
             _runButton,
             "Run output directory generated by the app after execution starts.");
 
-        var statusPanel = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2
-        };
+        inputsGroup.Controls.Add(_inputLayout);
+        contentPanel.Controls.Add(inputsGroup);
+        scrollPanel.Controls.Add(contentPanel);
 
-        statusPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        statusPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        var statusLabel = new Label
-        {
-            Text = "Status",
-            AutoSize = true,
-            Anchor = AnchorStyles.Left,
-            Margin = new Padding(0, 8, 0, 6)
-        };
-
-        BindHelp(statusLabel, "Execution log and status messages for the current run.");
-        BindHelp(_statusTextBox, "Execution log and status messages for the current run.");
-
-        statusPanel.Controls.Add(statusLabel, 0, 0);
-        statusPanel.Controls.Add(_statusTextBox, 0, 1);
-
-        container.Controls.Add(_inputLayout, 0, 0);
-        container.Controls.Add(statusPanel, 0, 1);
-
-        return container;
+        return scrollPanel;
     }
 
     private Control BuildRightPanel()
@@ -248,41 +311,45 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 2,
-            Padding = new Padding(12, 0, 0, 0)
+            RowCount = 2
         };
 
-        panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 45F));
+        panel.RowStyles.Add(new RowStyle(SizeType.Percent, 55F));
 
-        var helpLabel = new Label
+        var helpGroup = new GroupBox
         {
             Text = "Field help",
-            AutoSize = true,
-            Anchor = AnchorStyles.Left,
-            Margin = new Padding(0, 0, 0, 6)
+            Dock = DockStyle.Fill,
+            Padding = new Padding(12),
+            Font = new Font("Segoe UI", 10, FontStyle.Bold)
         };
 
-        panel.Controls.Add(helpLabel, 0, 0);
-        panel.Controls.Add(_helpTextBox, 0, 1);
+        BindHelp(helpGroup, "Descriptions and examples for the selected field.");
+        BindHelp(_helpTextBox, "Descriptions and examples for the selected field.");
+        helpGroup.Controls.Add(_helpTextBox);
 
-        BindHelp(helpLabel, "Descriptions and examples for the selected or hovered field.");
-        BindHelp(_helpTextBox, "Descriptions and examples for the selected or hovered field.");
+        var statusGroup = new GroupBox
+        {
+            Text = "Status",
+            Dock = DockStyle.Fill,
+            Padding = new Padding(12),
+            Font = new Font("Segoe UI", 10, FontStyle.Bold)
+        };
+
+        BindHelp(statusGroup, "Execution log and status messages for the current run.");
+        BindHelp(_statusTextBox, "Execution log and status messages for the current run.");
+        statusGroup.Controls.Add(_statusTextBox);
+
+        panel.Controls.Add(helpGroup, 0, 0);
+        panel.Controls.Add(statusGroup, 0, 1);
 
         return panel;
     }
 
     private void AddStandardRow(int row, string labelText, Control mainControl, Control sideControl, string helpText)
     {
-        var label = new Label
-        {
-            Text = labelText,
-            AutoSize = true,
-            Anchor = AnchorStyles.Left,
-            Margin = new Padding(0, 6, 8, 6)
-        };
-
-        AddCustomRow(row, label, mainControl, sideControl, helpText);
+        AddCustomRow(row, CreateFieldLabel(labelText), mainControl, sideControl, helpText);
     }
 
     private void AddCustomRow(int row, Label label, Control mainControl, Control sideControl, string helpText)
@@ -290,8 +357,12 @@ public sealed class MainForm : Form
         if (_inputLayout is null)
             return;
 
+        label.Margin = new Padding(0, 4, 12, 4);
         mainControl.Anchor = AnchorStyles.Left | AnchorStyles.Right;
         sideControl.Anchor = AnchorStyles.Left;
+
+        if (sideControl is Panel panel)
+            panel.Margin = new Padding(0);
 
         BindHelp(label, helpText);
         BindHelp(mainControl, helpText);
@@ -302,6 +373,18 @@ public sealed class MainForm : Form
         _inputLayout.Controls.Add(label, 0, row);
         _inputLayout.Controls.Add(mainControl, 1, row);
         _inputLayout.Controls.Add(sideControl, 2, row);
+    }
+
+    private static Label CreateFieldLabel(string text)
+    {
+        return new Label
+        {
+            Text = text,
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 4, 12, 4),
+            Font = new Font("Segoe UI", 9)
+        };
     }
 
     private void BindHelpText()
@@ -336,12 +419,8 @@ public sealed class MainForm : Form
             CheckFileExists = true
         };
 
-        if (dialog.ShowDialog(this) != DialogResult.OK)
-            return;
-
-        _rankingPathTextBox.Text = dialog.FileName;
-        LoadProfilesFromRankingFile(dialog.FileName);
-        UpdateDynamicFieldVisibility();
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+            _rankingPathTextBox.Text = dialog.FileName;
     }
 
     private void BrowseCsvFile()
@@ -352,59 +431,111 @@ public sealed class MainForm : Form
             CheckFileExists = true
         };
 
-        if (dialog.ShowDialog(this) != DialogResult.OK)
-            return;
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+            _csvPathTextBox.Text = dialog.FileName;
+    }
 
-        _csvPathTextBox.Text = dialog.FileName;
-        LoadNodeKeysFromCsv(dialog.FileName);
+    private void RefreshRankingFileState()
+    {
+        ClearProfiles();
+        _rankingFileValid = ValidateAndLoadRankingProfiles(_rankingPathTextBox.Text.Trim());
         UpdateDynamicFieldVisibility();
     }
 
-    private void LoadProfilesFromRankingFile(string filePath)
+    private void RefreshCsvFileState()
+    {
+        ClearNodeKeys();
+        _csvFileValid = ValidateAndLoadNodeKeys(_csvPathTextBox.Text.Trim());
+        UpdateDynamicFieldVisibility();
+    }
+
+    private void ClearProfiles()
     {
         _requestedProfileComboBox.Items.Clear();
         _requestedProfileComboBox.Items.Add("(auto)");
+        _requestedProfileComboBox.SelectedIndex = 0;
+    }
+
+    private void ClearNodeKeys()
+    {
+        _nodeKeyComboBox.Items.Clear();
+        _nodeKeyComboBox.Text = string.Empty;
+    }
+
+    private bool ValidateAndLoadRankingProfiles(string filePath)
+    {
+        _errorProvider.SetError(_rankingPathTextBox, string.Empty);
+
+        if (string.IsNullOrWhiteSpace(filePath))
+            return false;
+
+        if (!File.Exists(filePath))
+        {
+            _errorProvider.SetError(_rankingPathTextBox, "Ranking file does not exist.");
+            return false;
+        }
 
         try
         {
-            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
-            {
-                _requestedProfileComboBox.SelectedIndex = 0;
-                return;
-            }
-
             var parser = new RankingFileParser();
             var profiles = parser.Parse(filePath);
 
-            foreach (var profile in profiles.Select(p => p.Name).Distinct(StringComparer.OrdinalIgnoreCase))
-                _requestedProfileComboBox.Items.Add(profile);
+            if (profiles.Count == 0)
+            {
+                _errorProvider.SetError(_rankingPathTextBox, "Ranking file did not contain any ranking profiles.");
+                return false;
+            }
+
+            foreach (var profileName in profiles
+                .Select(p => p.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+            {
+                _requestedProfileComboBox.Items.Add(profileName);
+            }
 
             _requestedProfileComboBox.SelectedIndex = 0;
+            return true;
         }
         catch (Exception ex)
         {
-            AppendStatus($"Failed to load ranking profiles: {ex.Message}");
-            _requestedProfileComboBox.SelectedIndex = 0;
+            _errorProvider.SetError(_rankingPathTextBox, $"Invalid ranking file: {ex.Message}");
+            return false;
         }
     }
 
-    private void LoadNodeKeysFromCsv(string filePath)
+    private bool ValidateAndLoadNodeKeys(string filePath)
     {
-        _nodeKeyComboBox.Items.Clear();
+        _errorProvider.SetError(_csvPathTextBox, string.Empty);
+
+        if (string.IsNullOrWhiteSpace(filePath))
+            return false;
+
+        if (!File.Exists(filePath))
+        {
+            _errorProvider.SetError(_csvPathTextBox, "CSV file does not exist.");
+            return false;
+        }
 
         try
         {
-            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
-                return;
-
             var reader = new PopulationCsvReader();
             var rows = reader.Read(filePath);
 
             if (rows.Count == 0)
-                return;
+            {
+                _errorProvider.SetError(_csvPathTextBox, "CSV file contained no data rows.");
+                return false;
+            }
 
             var extractor = new PopulationNodeExtractor();
             var nodes = extractor.Extract(rows[0]);
+
+            if (nodes.Count == 0)
+            {
+                _errorProvider.SetError(_csvPathTextBox, "CSV file did not contain any supported node columns.");
+                return false;
+            }
 
             foreach (var key in nodes
                 .Select(n => ToNodeKey(n.NodeId))
@@ -416,10 +547,13 @@ public sealed class MainForm : Form
 
             if (_nodeKeyComboBox.Items.Count > 0)
                 _nodeKeyComboBox.SelectedIndex = 0;
+
+            return true;
         }
         catch (Exception ex)
         {
-            AppendStatus($"Failed to load node keys: {ex.Message}");
+            _errorProvider.SetError(_csvPathTextBox, $"Invalid CSV file: {ex.Message}");
+            return false;
         }
     }
 
@@ -434,30 +568,73 @@ public sealed class MainForm : Form
     private void UpdateDynamicFieldVisibility()
     {
         var isSingleMode = string.Equals(_modeComboBox.SelectedItem?.ToString(), "single", StringComparison.OrdinalIgnoreCase);
-        var hasRankingFile = !string.IsNullOrWhiteSpace(_rankingPathTextBox.Text) && File.Exists(_rankingPathTextBox.Text);
 
-        SetRowVisible(_nodeKeyLabel, isSingleMode);
-        SetRowVisible(_nodeKeyComboBox, isSingleMode);
-        SetRowVisible(_nodeKeySidePanel, isSingleMode);
+        SetRowVisible(
+            NodeKeyRow,
+            isSingleMode && _csvFileValid,
+            _nodeKeyLabel,
+            _nodeKeyComboBox,
+            _nodeKeySidePanel);
 
-        SetRowVisible(_requestedProfileLabel, hasRankingFile);
-        SetRowVisible(_requestedProfileComboBox, hasRankingFile);
-        SetRowVisible(_requestedProfileSidePanel, hasRankingFile);
-
-        if (!isSingleMode)
-            _nodeKeyComboBox.SelectedIndex = _nodeKeyComboBox.Items.Count > 0 ? 0 : -1;
-
-        if (!hasRankingFile)
-        {
-            _requestedProfileComboBox.Items.Clear();
-            _requestedProfileComboBox.Items.Add("(auto)");
-            _requestedProfileComboBox.SelectedIndex = 0;
-        }
+        SetRowVisible(
+            RequestedProfileRow,
+            _rankingFileValid,
+            _requestedProfileLabel,
+            _requestedProfileComboBox,
+            _requestedProfileSidePanel);
     }
 
-    private static void SetRowVisible(Control control, bool visible)
+    private void SetRowVisible(int rowIndex, bool visible, params Control[] controls)
     {
-        control.Visible = visible;
+        if (_inputLayout is null)
+            return;
+
+        foreach (var control in controls)
+            control.Visible = visible;
+
+        _inputLayout.RowStyles[rowIndex].SizeType = visible ? SizeType.AutoSize : SizeType.Absolute;
+        _inputLayout.RowStyles[rowIndex].Height = 0;
+    }
+
+    private bool ValidateInputsForRun(out double rakePercent, out double rakeCapBb, out double openSize, out double threeBetSize, out double fourBetSize)
+    {
+        rakePercent = 0;
+        rakeCapBb = 0;
+        openSize = 0;
+        threeBetSize = 0;
+        fourBetSize = 0;
+
+        if (!_rankingFileValid)
+            throw new InvalidOperationException("Select a valid ranking file.");
+
+        if (!_csvFileValid)
+            throw new InvalidOperationException("Select a valid CSV file.");
+
+        if (!double.TryParse(_rakePercentTextBox.Text, out rakePercent))
+            throw new InvalidOperationException("Rake percent must be a valid number.");
+
+        if (!double.TryParse(_rakeCapBbTextBox.Text, out rakeCapBb))
+            throw new InvalidOperationException("Rake cap bb must be a valid number.");
+
+        if (!double.TryParse(_openSizeTextBox.Text, out openSize))
+            throw new InvalidOperationException("Open size must be a valid number.");
+
+        if (!double.TryParse(_threeBetSizeTextBox.Text, out threeBetSize))
+            throw new InvalidOperationException("3bet size must be a valid number.");
+
+        if (!double.TryParse(_fourBetSizeTextBox.Text, out fourBetSize))
+            throw new InvalidOperationException("4bet size must be a valid number.");
+
+        if (rakePercent < 0)
+            throw new InvalidOperationException("Rake percent cannot be negative.");
+
+        if (rakeCapBb < 0)
+            throw new InvalidOperationException("Rake cap bb cannot be negative.");
+
+        if (openSize <= 0 || threeBetSize <= 0 || fourBetSize <= 0)
+            throw new InvalidOperationException("Bet sizes must be greater than zero.");
+
+        return true;
     }
 
     private async Task RunAnalysisAsync()
@@ -468,22 +645,10 @@ public sealed class MainForm : Form
 
         try
         {
-            if (!double.TryParse(_rakePercentTextBox.Text, out var rakePercent))
-                throw new InvalidOperationException("Rake percent must be a valid number.");
-
-            if (!double.TryParse(_rakeCapBbTextBox.Text, out var rakeCapBb))
-                throw new InvalidOperationException("Rake cap bb must be a valid number.");
-
-            if (!double.TryParse(_openSizeTextBox.Text, out var openSize))
-                throw new InvalidOperationException("Open size must be a valid number.");
-
-            if (!double.TryParse(_threeBetSizeTextBox.Text, out var threeBetSize))
-                throw new InvalidOperationException("3bet size must be a valid number.");
-
-            if (!double.TryParse(_fourBetSizeTextBox.Text, out var fourBetSize))
-                throw new InvalidOperationException("4bet size must be a valid number.");
+            ValidateInputsForRun(out var rakePercent, out var rakeCapBb, out var openSize, out var threeBetSize, out var fourBetSize);
 
             var mode = _modeComboBox.SelectedItem?.ToString() ?? "rfi";
+
             var nodeKey = string.Equals(mode, "single", StringComparison.OrdinalIgnoreCase)
                 ? _nodeKeyComboBox.SelectedItem?.ToString()
                 : null;
