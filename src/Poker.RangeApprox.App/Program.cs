@@ -68,6 +68,15 @@ var weightedSuperRangeWriter = new WeightedSuperRangeFileWriter(writer);
 var equityCalculator = new Poker.RangeApprox.Equity.OMPEval.OMPEvalEquityCalculator(iterations: 100000);
 var handRankingService = new HandVsRangeRankingService(equityCalculator);
 
+var exploitEngine = new ExploitEngine(equityCalculator);
+var exploitSizing = new ExploitSizingProfile(
+    OpenSize: 2.5,
+    ThreeBetSize: 8.5,
+    FourBetSize: 23.0,
+    FiveBetSize: 100.0,
+    SmallBlind: 0.5,
+    BigBlind: 1.0);
+
 switch (mode)
 {
     case "single":
@@ -80,6 +89,10 @@ switch (mode)
 
     case "rank-supercalls":
         RunRankSuperCalls(nodes);
+        break;
+
+    case "exploit-open":
+        RunExploitOpen(nodes);
         break;
 
     default:
@@ -309,4 +322,45 @@ string NormalizeFacingFourBetAction(string action)
         "fold" => "fold",
         _ => action
     };
+}
+
+void RunExploitOpen(List<PopulationNode> populationNodes)
+{
+    var approximationResults = engine.RunAll(populationNodes, profiles, requestedProfileName);
+    var callingSuperRanges = callingSuperRangeBuilder.Build(populationNodes, approximationResults);
+
+    weightedSuperRangeWriter.WriteAll(outputRoot, callingSuperRanges);
+    WriteSuperCallRankings(callingSuperRanges);
+
+    var exploitResults = exploitEngine.AnalyzeOpenSpots(
+        populationNodes,
+        approximationResults,
+        callingSuperRanges,
+        exploitSizing);
+
+    Console.WriteLine($"Generated exploit analysis for {exploitResults.Count} opening spots.");
+    Console.WriteLine();
+
+    foreach (var spot in exploitResults.Values.OrderBy(x => x.OpenPosition, StringComparer.OrdinalIgnoreCase))
+    {
+        WriteExploitSpot(spot);
+
+        Console.WriteLine($"Exploit spot: {spot.OpenPosition}");
+        Console.WriteLine($"Output: {Path.Combine(outputRoot, "exploit open", spot.OpenPosition)}");
+        Console.WriteLine();
+    }
+}
+
+void WriteExploitSpot(ExploitSpotResult result)
+{
+    var directory = Path.Combine(outputRoot, "exploit open", result.OpenPosition);
+    Directory.CreateDirectory(directory);
+
+    var rankingPath = Path.Combine(directory, "ranking.txt");
+    var rangePath = Path.Combine(directory, "positive_ev_range.txt");
+
+    var content = ExploitSpotResultFormatter.Format(result);
+    File.WriteAllText(rankingPath, content);
+
+    writer.WriteEquilab(rangePath, result.PositiveEvRange);
 }
