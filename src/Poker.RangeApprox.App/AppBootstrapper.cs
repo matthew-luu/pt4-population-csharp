@@ -1,4 +1,5 @@
-﻿using Poker.RangeApprox.Core.Approximation;
+﻿using Poker.RangeApprox.App.Execution;
+using Poker.RangeApprox.Core.Approximation;
 using Poker.RangeApprox.Core.Domain;
 using Poker.RangeApprox.Core.Equity;
 using Poker.RangeApprox.Infrastructure.Parsing;
@@ -8,16 +9,23 @@ namespace Poker.RangeApprox.App;
 
 public static class AppBootstrapper
 {
-    public static AppContext Build(AppOptions options)
+    public static AppContext Build(AppOptions options, IAppStatusWriter? status = null)
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        status ??= new ConsoleStatusWriter();
+
         var runTimestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        var outputRoot = Path.Combine("output", runTimestamp);
+        var outputRoot = string.IsNullOrWhiteSpace(options.OutputRoot)
+            ? Path.Combine("output", runTimestamp)
+            : Path.Combine(options.OutputRoot, runTimestamp);
+
         Directory.CreateDirectory(outputRoot);
 
-        Console.WriteLine($"Run directory: {outputRoot}");
-        Console.WriteLine();
+        status.WriteLine($"Run directory: {outputRoot}");
+        status.WriteLine($"Rake: {options.RakePercent:P2}, cap {options.RakeCapBb}bb");
+        status.WriteLine($"Sizing: open {options.OpenSize}bb, 3bet {options.ThreeBetSize}bb, 4bet {options.FourBetSize}bb");
+        status.WriteLine();
 
         var rankingParser = new RankingFileParser();
         var profiles = rankingParser.Parse(options.RankingFilePath);
@@ -65,8 +73,8 @@ public static class AppBootstrapper
         var exploitEngine = new ExploitEngine(equityCalculator);
 
         var rakeProfile = new ExploitRakeProfile(
-            Percent: 0.05,
-            CapBb: 150.0);
+            Percent: options.RakePercent,
+            CapBb: options.RakeCapBb);
 
         var realizationProfile = new ExploitRealizationProfile(
             SingleRaisedIp: 0.90,
@@ -77,9 +85,9 @@ public static class AppBootstrapper
             FourBetCallOop: 0.76);
 
         var exploitSizing = new ExploitSizingProfile(
-            OpenSize: 2.5,
-            ThreeBetSize: 8.5,
-            FourBetSize: 23.0,
+            OpenSize: options.OpenSize,
+            ThreeBetSize: options.ThreeBetSize,
+            FourBetSize: options.FourBetSize,
             FiveBetSize: 100.0,
             SmallBlind: 0.5,
             BigBlind: 1.0,
@@ -98,6 +106,7 @@ public static class AppBootstrapper
             WeightedSuperRangeWriter: weightedSuperRangeWriter,
             HandRankingService: handRankingService,
             ExploitEngine: exploitEngine,
-            ExploitSizing: exploitSizing);
+            ExploitSizing: exploitSizing,
+            Status: status);
     }
 }

@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cassert>
 
-
 namespace omp {
 
 // Construct empty.
