@@ -53,3 +53,9 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 /.vs
+prompt.txt
+/src/Poker.RangeApprox.App/Properties
+/src/Poker.RangeApprox.WinForms/Properties
+src/Poker.RangeApprox.WinForms/Poker.RangeApprox.WinForms.csproj.user
+src/Poker.RangeApprox.App/Poker.RangeApprox.App.csproj.user
+src/Poker.RangeApprox.WinForms/Poker.RangeApprox.WinForms.csproj.user
