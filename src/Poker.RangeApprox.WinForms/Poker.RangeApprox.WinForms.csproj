@@ -15,7 +15,6 @@
 	<ItemGroup>
 		<None Include="..\..\x64\$(Configuration)\Poker.RangeApprox.Equity.Native.dll"
 			  Link="Poker.RangeApprox.Equity.Native.dll"
-			  CopyToOutputDirectory="PreserveNewest" />
+			  CopyToOutputDirectory="Always" />
 	</ItemGroup>
-
 </Project>
