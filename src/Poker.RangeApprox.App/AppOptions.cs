@@ -1,8 +1,10 @@
-﻿namespace Poker.RangeApprox.App;
+﻿using System.Globalization;
+
+namespace Poker.RangeApprox.App;
 
 public sealed record AppOptions(
     string RankingFilePath,
-    string CsvPath,
+    string? CsvPath,
     string Mode,
     string? NodeKey,
     string? RequestedProfileName,
@@ -15,33 +17,54 @@ public sealed record AppOptions(
 {
     public static AppOptions Parse(string[] args)
     {
-        var rankingFilePath = args.Length > 0 ? args[0] : "prefloprankings.txt";
-        var csvPath = args.Length > 1 ? args[1] : "population.csv";
-        var mode = args.Length > 2 ? args[2].ToLowerInvariant() : "rfi";
-        var nodeKey = args.Length > 3 ? args[3] : null;
-        var requestedProfileName = args.Length > 4 ? args[4] : null;
+        var rankingFilePath = args.Length > 0
+            ? args[0]
+            : "prefloprankings.txt";
 
-        var rakePercent = args.Length > 5 && double.TryParse(args[5], out var parsedPercent)
+        var csvPath = args.Length > 1
+            ? NormalizeNullable(args[1])
+            : "population.csv";
+
+        var mode = args.Length > 2
+            ? args[2].ToLowerInvariant()
+            : "rfi";
+
+        var nodeKey = args.Length > 3
+            ? NormalizeNullable(args[3])
+            : null;
+
+        var requestedProfileName = args.Length > 4
+            ? NormalizeNullable(args[4])
+            : null;
+
+        var rakePercent = args.Length > 5 &&
+                          double.TryParse(args[5], NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedPercent)
             ? parsedPercent
             : 0.05;
 
-        var rakeCapBb = args.Length > 6 && double.TryParse(args[6], out var parsedCap)
+        var rakeCapBb = args.Length > 6 &&
+                        double.TryParse(args[6], NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedCap)
             ? parsedCap
             : 150.0;
 
-        var openSize = args.Length > 7 && double.TryParse(args[7], out var parsedOpen)
+        var openSize = args.Length > 7 &&
+                       double.TryParse(args[7], NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedOpen)
             ? parsedOpen
             : 2.5;
 
-        var threeBetSize = args.Length > 8 && double.TryParse(args[8], out var parsedThreeBet)
+        var threeBetSize = args.Length > 8 &&
+                           double.TryParse(args[8], NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedThreeBet)
             ? parsedThreeBet
             : 8.5;
 
-        var fourBetSize = args.Length > 9 && double.TryParse(args[9], out var parsedFourBet)
+        var fourBetSize = args.Length > 9 &&
+                          double.TryParse(args[9], NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedFourBet)
             ? parsedFourBet
             : 23.0;
 
-        var outputRoot = args.Length > 10 ? args[10] : null;
+        var outputRoot = args.Length > 10
+            ? NormalizeNullable(args[10])
+            : null;
 
         return new AppOptions(
             RankingFilePath: rankingFilePath,
@@ -55,5 +78,21 @@ public sealed record AppOptions(
             ThreeBetSize: threeBetSize,
             FourBetSize: fourBetSize,
             OutputRoot: outputRoot);
+    }
+
+    private static string? NormalizeNullable(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var trimmed = value.Trim();
+
+        if (trimmed.Equals("null", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        if (trimmed.Equals("-", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return trimmed;
     }
 }

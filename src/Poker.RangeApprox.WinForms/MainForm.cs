@@ -228,7 +228,7 @@ public sealed class MainForm : Form
             "CSV file",
             _csvPathTextBox,
             _browseCsvButton,
-            "Population CSV export from PokerTracker 4. The app reads node frequencies and opportunity counts from it.\r\n\r\nExample:\r\npopulation.csv");
+            "Population CSV export from PokerTracker 4.\r\n\r\nLeave this blank to use database mode instead.");
 
         AddStandardRow(
             ModeRow,
@@ -390,7 +390,7 @@ public sealed class MainForm : Form
     private void BindHelpText()
     {
         BindHelp(_browseRankingButton, "Browse for a ranking file.\r\n\r\nExample:\r\nprefloprankings.txt");
-        BindHelp(_browseCsvButton, "Browse for a population CSV export.\r\n\r\nExample:\r\npopulation.csv");
+        BindHelp(_browseCsvButton, "Browse for a population CSV export.\r\n\r\nLeave blank to use database mode.");
         BindHelp(_runButton, "Run the selected analysis using the current inputs.");
     }
 
@@ -405,10 +405,14 @@ public sealed class MainForm : Form
     {
         _helpTextBox.Text =
             "Select a field to see its description here.\r\n\r\n" +
-            "Typical first run:\r\n" +
+            "Typical CSV run:\r\n" +
             "- choose a ranking file\r\n" +
             "- choose a CSV file\r\n" +
-            "- leave Mode on rfi";
+            "- leave Mode on rfi\r\n\r\n" +
+            "Database mode:\r\n" +
+            "- choose a ranking file\r\n" +
+            "- leave CSV blank\r\n" +
+            "- click Run and enter database connection details";
     }
 
     private void BrowseRankingFile()
@@ -596,7 +600,13 @@ public sealed class MainForm : Form
         _inputLayout.RowStyles[rowIndex].Height = 0;
     }
 
-    private bool ValidateInputsForRun(out double rakePercent, out double rakeCapBb, out double openSize, out double threeBetSize, out double fourBetSize)
+    private bool ValidateInputsForRun(
+        out double rakePercent,
+        out double rakeCapBb,
+        out double openSize,
+        out double threeBetSize,
+        out double fourBetSize,
+        out bool useDatabaseMode)
     {
         rakePercent = 0;
         rakeCapBb = 0;
@@ -607,8 +617,10 @@ public sealed class MainForm : Form
         if (!_rankingFileValid)
             throw new InvalidOperationException("Select a valid ranking file.");
 
-        if (!_csvFileValid)
-            throw new InvalidOperationException("Select a valid CSV file.");
+        useDatabaseMode = string.IsNullOrWhiteSpace(_csvPathTextBox.Text.Trim());
+
+        if (!useDatabaseMode && !_csvFileValid)
+            throw new InvalidOperationException("Select a valid CSV file or leave CSV blank to use database mode.");
 
         if (!double.TryParse(_rakePercentTextBox.Text, out rakePercent))
             throw new InvalidOperationException("Rake percent must be a valid number.");
@@ -645,7 +657,13 @@ public sealed class MainForm : Form
 
         try
         {
-            ValidateInputsForRun(out var rakePercent, out var rakeCapBb, out var openSize, out var threeBetSize, out var fourBetSize);
+            ValidateInputsForRun(
+                out var rakePercent,
+                out var rakeCapBb,
+                out var openSize,
+                out var threeBetSize,
+                out var fourBetSize,
+                out var useDatabaseMode);
 
             var mode = _modeComboBox.SelectedItem?.ToString() ?? "rfi";
 
@@ -653,16 +671,34 @@ public sealed class MainForm : Form
                 ? _nodeKeyComboBox.SelectedItem?.ToString()
                 : null;
 
-            if (string.Equals(mode, "single", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(nodeKey))
-                throw new InvalidOperationException("single mode requires a node key.");
+            if (string.Equals(mode, "single", StringComparison.OrdinalIgnoreCase) &&
+                !useDatabaseMode &&
+                string.IsNullOrWhiteSpace(nodeKey))
+            {
+                throw new InvalidOperationException("single mode requires a node key in CSV mode.");
+            }
 
             var requestedProfile = _requestedProfileComboBox.SelectedItem?.ToString();
             if (string.Equals(requestedProfile, "(auto)", StringComparison.OrdinalIgnoreCase))
                 requestedProfile = null;
 
+            string? connectionString = null;
+
+            if (useDatabaseMode)
+            {
+                using var dialog = new DatabaseConnectionDialog();
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    AppendStatus("Run cancelled.");
+                    return;
+                }
+
+                connectionString = dialog.ConnectionString;
+            }
+
             var options = new AppOptions(
                 RankingFilePath: _rankingPathTextBox.Text.Trim(),
-                CsvPath: _csvPathTextBox.Text.Trim(),
+                CsvPath: useDatabaseMode ? string.Empty : _csvPathTextBox.Text.Trim(),
                 Mode: mode,
                 NodeKey: nodeKey,
                 RequestedProfileName: requestedProfile,
@@ -677,7 +713,7 @@ public sealed class MainForm : Form
 
             var exitCode = await Task.Run(() =>
             {
-                var context = AppBootstrapper.Build(options, statusWriter);
+                var context = AppBootstrapper.Build(options, statusWriter, connectionString);
                 BeginInvoke(() => _outputRootTextBox.Text = context.OutputRoot);
                 return AppRunner.Run(context);
             });

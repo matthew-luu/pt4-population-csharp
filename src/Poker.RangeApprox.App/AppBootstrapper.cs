@@ -9,7 +9,12 @@ namespace Poker.RangeApprox.App;
 
 public static class AppBootstrapper
 {
-    public static AppContext Build(AppOptions options, IAppStatusWriter? status = null)
+    private const short DefaultIdLimit = 2;
+
+    public static AppContext Build(
+        AppOptions options,
+        IAppStatusWriter? status = null,
+        string? connectionStringOverride = null)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -33,20 +38,16 @@ public static class AppBootstrapper
         if (profiles.Count == 0)
             throw new InvalidOperationException("No ranking profiles found.");
 
-        var csvReader = new PopulationCsvReader();
-        var rows = csvReader.Read(options.CsvPath);
-
-        if (rows.Count == 0)
-            throw new InvalidOperationException("No CSV rows found.");
+        var row = ReadPopulationRow(options, status, connectionStringOverride);
 
         var extractor = new PopulationNodeExtractor();
         var opportunityExtractor = new PopulationOpportunityExtractor();
 
-        var nodes = extractor.Extract(rows[0]);
-        var opportunities = opportunityExtractor.Extract(rows[0]);
+        var nodes = extractor.Extract(row);
+        var opportunities = opportunityExtractor.Extract(row);
 
         if (nodes.Count == 0)
-            throw new InvalidOperationException("No nodes extracted from CSV.");
+            throw new InvalidOperationException("No population nodes extracted from selected source.");
 
         var resolver = new NodeDefinitionResolver();
         var requestBuilder = new ApproximationRequestBuilder(resolver);
@@ -108,5 +109,34 @@ public static class AppBootstrapper
             ExploitEngine: exploitEngine,
             ExploitSizing: exploitSizing,
             Status: status);
+    }
+
+    private static Dictionary<string, string> ReadPopulationRow(
+        AppOptions options,
+        IAppStatusWriter status,
+        string? connectionStringOverride)
+    {
+        if (!string.IsNullOrWhiteSpace(options.CsvPath) && File.Exists(options.CsvPath))
+        {
+            status.WriteLine($"Population source: CSV ({options.CsvPath})");
+            status.WriteLine();
+
+            IPopulationRowSource csvSource = new CsvPopulationRowSource(options.CsvPath);
+            return csvSource.ReadSingleRow();
+        }
+
+        if (string.IsNullOrWhiteSpace(connectionStringOverride))
+            throw new InvalidOperationException("Database mode requires a connection string.");
+
+        status.WriteLine("Population source: PostgreSQL");
+        status.WriteLine($"id_limit: {DefaultIdLimit}");
+        status.WriteLine("Refreshing materialized views...");
+        status.WriteLine();
+
+        IPopulationRowSource postgresSource = new PostgresPopulationRowSource(
+            connectionString: connectionStringOverride,
+            idLimit: DefaultIdLimit);
+
+        return postgresSource.ReadSingleRow();
     }
 }

@@ -7,6 +7,10 @@
     "ExploitOpen": {
       "commandName": "Project",
       "commandLineArgs": "\"C:\\Program Files\\GTO\\config\\prefloprankings.txt\" \"D:\\pt4-population-sql\\Exported Reports\\population.csv\" exploit-open"
+    },
+    "TestDB": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Program Files\\GTO\\config\\prefloprankings.txt\" db exploit-open"
     }
   }
 }
