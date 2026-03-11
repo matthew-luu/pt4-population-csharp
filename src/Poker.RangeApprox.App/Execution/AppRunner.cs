@@ -26,6 +26,10 @@ public static class AppRunner
                     ExploitCommands.RunExploitOpen(context);
                     break;
 
+                case "exploit-3bet":
+                    ExploitCommands.RunExploitThreeBet(context);
+                    break;
+
                 default:
                     ApproximationCommands.RunRfi(context);
                     break;

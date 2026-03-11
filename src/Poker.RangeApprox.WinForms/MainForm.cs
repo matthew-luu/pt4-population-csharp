@@ -1,4 +1,5 @@
-﻿using Poker.RangeApprox.App;
+﻿using System.Diagnostics;
+using Poker.RangeApprox.App;
 using Poker.RangeApprox.App.Execution;
 using Poker.RangeApprox.Core.Domain;
 using Poker.RangeApprox.Infrastructure.Parsing;
@@ -29,7 +30,11 @@ public sealed class MainForm : Form
     private readonly TextBox _openSizeTextBox = new() { Text = "2.5" };
     private readonly TextBox _threeBetSizeTextBox = new() { Text = "8.5" };
     private readonly TextBox _fourBetSizeTextBox = new() { Text = "23" };
-    private readonly TextBox _outputRootTextBox = new() { ReadOnly = true };
+    private readonly TextBox _outputRootTextBox = new()
+    {
+        ReadOnly = true,
+        Cursor = Cursors.Hand
+    };
 
     private readonly TextBox _helpTextBox = new()
     {
@@ -92,7 +97,8 @@ public sealed class MainForm : Form
             "single",
             "all",
             "rank-supercalls",
-            "exploit-open"
+            "exploit-open",
+            "exploit-3bet"
         ]);
         _modeComboBox.SelectedItem = "rfi";
 
@@ -146,6 +152,7 @@ public sealed class MainForm : Form
 
         _rankingPathTextBox.TextChanged += (_, _) => RefreshRankingFileState();
         _csvPathTextBox.TextChanged += (_, _) => RefreshCsvFileState();
+        _outputRootTextBox.Click += (_, _) => OpenOutputFolder();
     }
 
     private void BuildLayout()
@@ -240,7 +247,8 @@ public sealed class MainForm : Form
             "single = generate one node using Node Key\r\n" +
             "all = generate all ranges, super-ranges, and rankings\r\n" +
             "rank-supercalls = build call super-ranges and rank hands against them\r\n" +
-            "exploit-open = run exploitative open analysis");
+            "exploit-open = run exploitative open analysis\r\n" +
+            "exploit-3bet = run exploitative 3bet analysis");
 
         AddCustomRow(
             NodeKeyRow,
@@ -739,5 +747,32 @@ public sealed class MainForm : Form
         }
 
         _statusTextBox.AppendText(message + Environment.NewLine);
+    }
+
+    private void OpenOutputFolder()
+    {
+        var path = _outputRootTextBox.Text.Trim();
+
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        if (!Directory.Exists(path))
+        {
+            MessageBox.Show(
+                this,
+                "The output folder does not exist yet.",
+                "Output Folder",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "explorer.exe",
+            Arguments = $"\"{path}\"",
+            UseShellExecute = true
+        });
     }
 }

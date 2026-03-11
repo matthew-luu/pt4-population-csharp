@@ -28,19 +28,19 @@ public sealed class PopulationOpportunityExtractor
                 continue;
             }
 
-            if (TryParseSimplePositionColumn(columnName, "vs_open_", "_opp", out var vsOpenPosition))
+            if (TryParseSimplePositionColumn(columnName, "_vs_open_opp", out var vsOpenPosition))
             {
                 vsOpen[vsOpenPosition] = count;
                 continue;
             }
 
-            if (TryParseSimplePositionColumn(columnName, "vs_threebet_", "_opp", out var vsThreeBetPosition))
+            if (TryParseSimplePositionColumn(columnName, "_vs_threebet_opp", out var vsThreeBetPosition))
             {
                 vsThreeBet[vsThreeBetPosition] = count;
                 continue;
             }
 
-            if (TryParseSimplePositionColumn(columnName, "vs_fourbet_", "_opp", out var vsFourBetPosition))
+            if (TryParseSimplePositionColumn(columnName, "_vs_fourbet_opp", out var vsFourBetPosition))
             {
                 vsFourBet[vsFourBetPosition] = count;
             }
@@ -54,10 +54,10 @@ public sealed class PopulationOpportunityExtractor
     }
 
     private static bool TryParseSimplePositionColumn(
-        string columnName,
-        string prefix,
-        string suffix,
-        out string position)
+    string columnName,
+    string prefix,
+    string suffix,
+    out string position)
     {
         position = string.Empty;
 
@@ -76,5 +76,25 @@ public sealed class PopulationOpportunityExtractor
 
         position = inner.ToLowerInvariant();
         return true;
+    }
+
+    private static bool TryParseSimplePositionColumn(
+    string columnName,
+    string suffix,
+    out string position)
+    {
+        position = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(columnName))
+            return false;
+
+        var name = columnName.Trim().ToLowerInvariant();
+
+        if (!name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        position = name[..^suffix.Length].Trim();
+
+        return !string.IsNullOrWhiteSpace(position);
     }
 }

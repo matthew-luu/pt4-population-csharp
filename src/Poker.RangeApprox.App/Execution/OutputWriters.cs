@@ -50,4 +50,24 @@ public static class OutputWriters
 
         context.RangeWriter.WriteEquilab(rangePath, result.PositiveEvRange);
     }
+
+    public static void WriteExploitThreeBetSpot(
+        AppContext context,
+        ExploitThreeBetSpotResult result)
+    {
+        var directory = Path.Combine(
+            context.OutputRoot,
+            "exploit 3bet",
+            $"{result.ThreeBettorPosition} vs {result.OpenPosition}");
+
+        Directory.CreateDirectory(directory);
+
+        var rankingPath = Path.Combine(directory, "ranking.txt");
+        var rangePath = Path.Combine(directory, "positive_ev_range.txt");
+
+        var content = ExploitThreeBetSpotResultFormatter.Format(result);
+        File.WriteAllText(rankingPath, content);
+
+        context.RangeWriter.WriteEquilab(rangePath, result.PositiveEvRange);
+    }
 }
