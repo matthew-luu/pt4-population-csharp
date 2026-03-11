@@ -6,7 +6,7 @@
 
 ## High-Level Architecture
 
-BLOCK text
+```text
 Population dataset
         ↓
 Parsing / loading
@@ -20,7 +20,7 @@ Exploit EV engine
 Formatting / reporting
         ↓
 Console or GUI output
-ENDBLOCK
+```
 
 ---
 
