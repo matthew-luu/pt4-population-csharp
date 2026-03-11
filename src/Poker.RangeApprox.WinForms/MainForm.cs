@@ -1,4 +1,5 @@
-﻿using Poker.RangeApprox.App;
+﻿using System.Diagnostics;
+using Poker.RangeApprox.App;
 using Poker.RangeApprox.App.Execution;
 using Poker.RangeApprox.Core.Domain;
 using Poker.RangeApprox.Infrastructure.Parsing;
@@ -29,7 +30,11 @@ public sealed class MainForm : Form
     private readonly TextBox _openSizeTextBox = new() { Text = "2.5" };
     private readonly TextBox _threeBetSizeTextBox = new() { Text = "8.5" };
     private readonly TextBox _fourBetSizeTextBox = new() { Text = "23" };
-    private readonly TextBox _outputRootTextBox = new() { ReadOnly = true };
+    private readonly TextBox _outputRootTextBox = new()
+    {
+        ReadOnly = true,
+        Cursor = Cursors.Hand
+    };
 
     private readonly TextBox _helpTextBox = new()
     {
@@ -92,7 +97,8 @@ public sealed class MainForm : Form
             "single",
             "all",
             "rank-supercalls",
-            "exploit-open"
+            "exploit-open",
+            "exploit-3bet"
         ]);
         _modeComboBox.SelectedItem = "rfi";
 
@@ -146,6 +152,7 @@ public sealed class MainForm : Form
 
         _rankingPathTextBox.TextChanged += (_, _) => RefreshRankingFileState();
         _csvPathTextBox.TextChanged += (_, _) => RefreshCsvFileState();
+        _outputRootTextBox.Click += (_, _) => OpenOutputFolder();
     }
 
     private void BuildLayout()
@@ -228,7 +235,7 @@ public sealed class MainForm : Form
             "CSV file",
             _csvPathTextBox,
             _browseCsvButton,
-            "Population CSV export from PokerTracker 4. The app reads node frequencies and opportunity counts from it.\r\n\r\nExample:\r\npopulation.csv");
+            "Population CSV export from PokerTracker 4.\r\n\r\nLeave this blank to use database mode instead.");
 
         AddStandardRow(
             ModeRow,
@@ -240,7 +247,8 @@ public sealed class MainForm : Form
             "single = generate one node using Node Key\r\n" +
             "all = generate all ranges, super-ranges, and rankings\r\n" +
             "rank-supercalls = build call super-ranges and rank hands against them\r\n" +
-            "exploit-open = run exploitative open analysis");
+            "exploit-open = run exploitative open analysis\r\n" +
+            "exploit-3bet = run exploitative 3bet analysis");
 
         AddCustomRow(
             NodeKeyRow,
@@ -390,7 +398,7 @@ public sealed class MainForm : Form
     private void BindHelpText()
     {
         BindHelp(_browseRankingButton, "Browse for a ranking file.\r\n\r\nExample:\r\nprefloprankings.txt");
-        BindHelp(_browseCsvButton, "Browse for a population CSV export.\r\n\r\nExample:\r\npopulation.csv");
+        BindHelp(_browseCsvButton, "Browse for a population CSV export.\r\n\r\nLeave blank to use database mode.");
         BindHelp(_runButton, "Run the selected analysis using the current inputs.");
     }
 
@@ -405,10 +413,14 @@ public sealed class MainForm : Form
     {
         _helpTextBox.Text =
             "Select a field to see its description here.\r\n\r\n" +
-            "Typical first run:\r\n" +
+            "Typical CSV run:\r\n" +
             "- choose a ranking file\r\n" +
             "- choose a CSV file\r\n" +
-            "- leave Mode on rfi";
+            "- leave Mode on rfi\r\n\r\n" +
+            "Database mode:\r\n" +
+            "- choose a ranking file\r\n" +
+            "- leave CSV blank\r\n" +
+            "- click Run and enter database connection details";
     }
 
     private void BrowseRankingFile()
@@ -596,7 +608,13 @@ public sealed class MainForm : Form
         _inputLayout.RowStyles[rowIndex].Height = 0;
     }
 
-    private bool ValidateInputsForRun(out double rakePercent, out double rakeCapBb, out double openSize, out double threeBetSize, out double fourBetSize)
+    private bool ValidateInputsForRun(
+        out double rakePercent,
+        out double rakeCapBb,
+        out double openSize,
+        out double threeBetSize,
+        out double fourBetSize,
+        out bool useDatabaseMode)
     {
         rakePercent = 0;
         rakeCapBb = 0;
@@ -607,8 +625,10 @@ public sealed class MainForm : Form
         if (!_rankingFileValid)
             throw new InvalidOperationException("Select a valid ranking file.");
 
-        if (!_csvFileValid)
-            throw new InvalidOperationException("Select a valid CSV file.");
+        useDatabaseMode = string.IsNullOrWhiteSpace(_csvPathTextBox.Text.Trim());
+
+        if (!useDatabaseMode && !_csvFileValid)
+            throw new InvalidOperationException("Select a valid CSV file or leave CSV blank to use database mode.");
 
         if (!double.TryParse(_rakePercentTextBox.Text, out rakePercent))
             throw new InvalidOperationException("Rake percent must be a valid number.");
@@ -645,7 +665,13 @@ public sealed class MainForm : Form
 
         try
         {
-            ValidateInputsForRun(out var rakePercent, out var rakeCapBb, out var openSize, out var threeBetSize, out var fourBetSize);
+            ValidateInputsForRun(
+                out var rakePercent,
+                out var rakeCapBb,
+                out var openSize,
+                out var threeBetSize,
+                out var fourBetSize,
+                out var useDatabaseMode);
 
             var mode = _modeComboBox.SelectedItem?.ToString() ?? "rfi";
 
@@ -653,16 +679,34 @@ public sealed class MainForm : Form
                 ? _nodeKeyComboBox.SelectedItem?.ToString()
                 : null;
 
-            if (string.Equals(mode, "single", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(nodeKey))
-                throw new InvalidOperationException("single mode requires a node key.");
+            if (string.Equals(mode, "single", StringComparison.OrdinalIgnoreCase) &&
+                !useDatabaseMode &&
+                string.IsNullOrWhiteSpace(nodeKey))
+            {
+                throw new InvalidOperationException("single mode requires a node key in CSV mode.");
+            }
 
             var requestedProfile = _requestedProfileComboBox.SelectedItem?.ToString();
             if (string.Equals(requestedProfile, "(auto)", StringComparison.OrdinalIgnoreCase))
                 requestedProfile = null;
 
+            string? connectionString = null;
+
+            if (useDatabaseMode)
+            {
+                using var dialog = new DatabaseConnectionDialog();
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    AppendStatus("Run cancelled.");
+                    return;
+                }
+
+                connectionString = dialog.ConnectionString;
+            }
+
             var options = new AppOptions(
                 RankingFilePath: _rankingPathTextBox.Text.Trim(),
-                CsvPath: _csvPathTextBox.Text.Trim(),
+                CsvPath: useDatabaseMode ? string.Empty : _csvPathTextBox.Text.Trim(),
                 Mode: mode,
                 NodeKey: nodeKey,
                 RequestedProfileName: requestedProfile,
@@ -677,7 +721,7 @@ public sealed class MainForm : Form
 
             var exitCode = await Task.Run(() =>
             {
-                var context = AppBootstrapper.Build(options, statusWriter);
+                var context = AppBootstrapper.Build(options, statusWriter, connectionString);
                 BeginInvoke(() => _outputRootTextBox.Text = context.OutputRoot);
                 return AppRunner.Run(context);
             });
@@ -703,5 +747,32 @@ public sealed class MainForm : Form
         }
 
         _statusTextBox.AppendText(message + Environment.NewLine);
+    }
+
+    private void OpenOutputFolder()
+    {
+        var path = _outputRootTextBox.Text.Trim();
+
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        if (!Directory.Exists(path))
+        {
+            MessageBox.Show(
+                this,
+                "The output folder does not exist yet.",
+                "Output Folder",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "explorer.exe",
+            Arguments = $"\"{path}\"",
+            UseShellExecute = true
+        });
     }
 }
