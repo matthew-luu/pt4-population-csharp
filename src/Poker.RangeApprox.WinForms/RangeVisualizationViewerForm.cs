@@ -1,4 +1,5 @@
 ﻿using Poker.RangeApprox.Core.Visualization;
+using System.Reflection;
 
 namespace Poker.RangeApprox.WinForms;
 
@@ -7,6 +8,7 @@ public sealed class RangeVisualizationViewerForm : Form
     private static readonly string[] RankOrder = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
 
     private readonly RangeVisualizationDocument _document;
+    private readonly Dictionary<string, TableLayoutPanel> _tableCache = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly TabControl _scenarioTabControl = new()
     {
@@ -102,11 +104,17 @@ public sealed class RangeVisualizationViewerForm : Form
         StartPosition = FormStartPosition.CenterParent;
 
         BuildLayout();
+        PrebuildTables();
         LoadScenarios();
     }
 
     private void BuildLayout()
     {
+        EnableDoubleBuffering(_matrixHost);
+        EnableDoubleBuffering(_heroPanel);
+        EnableDoubleBuffering(_villainPanel);
+        EnableDoubleBuffering(_legendPanel);
+
         var topPanel = new Panel
         {
             Dock = DockStyle.Top,
@@ -150,6 +158,17 @@ public sealed class RangeVisualizationViewerForm : Form
         _scenarioTabControl.SelectedIndexChanged += (_, _) => OnScenarioChanged();
     }
 
+    private void PrebuildTables()
+    {
+        foreach (var scenario in _document.Scenarios)
+        {
+            foreach (var view in scenario.Views)
+            {
+                _tableCache[view.ViewId] = BuildMatrixTable(view);
+            }
+        }
+    }
+
     private void LoadScenarios()
     {
         _scenarioTabControl.TabPages.Clear();
@@ -183,11 +202,13 @@ public sealed class RangeVisualizationViewerForm : Form
 
     private void RefreshHeroButtons()
     {
+        _heroPanel.SuspendLayout();
         _heroPanel.Controls.Clear();
 
         var scenario = GetSelectedScenario();
         if (scenario is null)
         {
+            _heroPanel.ResumeLayout();
             RefreshVillainButtons();
             return;
         }
@@ -200,6 +221,7 @@ public sealed class RangeVisualizationViewerForm : Form
 
         if (heroPositions.Count == 0)
         {
+            _heroPanel.ResumeLayout();
             RefreshVillainButtons();
             return;
         }
@@ -216,15 +238,16 @@ public sealed class RangeVisualizationViewerForm : Form
                     _selectedHero = hero;
                     _selectedVillain = null;
                     RefreshHeroButtons();
-                    RefreshVillainButtons();
                 }));
         }
 
+        _heroPanel.ResumeLayout();
         RefreshVillainButtons();
     }
 
     private void RefreshVillainButtons()
     {
+        _villainPanel.SuspendLayout();
         _villainPanel.Controls.Clear();
 
         var scenario = GetSelectedScenario();
@@ -232,6 +255,7 @@ public sealed class RangeVisualizationViewerForm : Form
         {
             _villainLabel.Visible = false;
             _villainPanel.Visible = false;
+            _villainPanel.ResumeLayout();
             RenderCurrentView();
             return;
         }
@@ -256,6 +280,7 @@ public sealed class RangeVisualizationViewerForm : Form
         if (!showVillains)
         {
             _selectedVillain = null;
+            _villainPanel.ResumeLayout();
             RenderCurrentView();
             return;
         }
@@ -274,6 +299,7 @@ public sealed class RangeVisualizationViewerForm : Form
                 }));
         }
 
+        _villainPanel.ResumeLayout();
         RenderCurrentView();
     }
 
@@ -297,6 +323,9 @@ public sealed class RangeVisualizationViewerForm : Form
 
     private void RenderCurrentView()
     {
+        _matrixHost.SuspendLayout();
+        _legendPanel.SuspendLayout();
+
         _matrixHost.Controls.Clear();
         _legendPanel.Controls.Clear();
 
@@ -305,16 +334,16 @@ public sealed class RangeVisualizationViewerForm : Form
         if (view is null)
         {
             _detailsTextBox.Text = "No range visualization view is available.";
+            _matrixHost.ResumeLayout();
+            _legendPanel.ResumeLayout();
             return;
         }
 
-        var table = BuildMatrixTable(view);
-        _matrixHost.Controls.Add(table);
+        if (_tableCache.TryGetValue(view.ViewId, out var table))
+            _matrixHost.Controls.Add(table);
 
         foreach (var legendItem in view.Legend)
-        {
             _legendPanel.Controls.Add(CreateLegendChip(legendItem));
-        }
 
         _detailsTextBox.Text =
             $"Scenario : {GetSelectedScenario()?.ScenarioLabel}{Environment.NewLine}" +
@@ -322,6 +351,9 @@ public sealed class RangeVisualizationViewerForm : Form
             $"Villain  : {(string.IsNullOrWhiteSpace(view.VillainPosition) ? "-" : view.VillainPosition!.ToUpperInvariant())}{Environment.NewLine}" +
             $"{Environment.NewLine}" +
             "Click a hand cell to inspect EV details.";
+
+        _matrixHost.ResumeLayout();
+        _legendPanel.ResumeLayout();
     }
 
     private Control CreateLegendChip(RangeVisualizationLegendItem item)
@@ -357,6 +389,8 @@ public sealed class RangeVisualizationViewerForm : Form
             CellBorderStyle = TableLayoutPanelCellBorderStyle.Single,
             BackColor = Color.White
         };
+
+        EnableDoubleBuffering(table);
 
         for (int i = 0; i < 14; i++)
         {
@@ -495,9 +529,7 @@ public sealed class RangeVisualizationViewerForm : Form
         var hasVillains = matchingViews.Any(x => !string.IsNullOrWhiteSpace(x.VillainPosition));
 
         if (!hasVillains)
-        {
             return matchingViews.FirstOrDefault();
-        }
 
         if (string.IsNullOrWhiteSpace(_selectedVillain))
             return matchingViews.FirstOrDefault();
@@ -529,5 +561,12 @@ public sealed class RangeVisualizationViewerForm : Form
             "fold" => Color.FromArgb(225, 225, 225),
             _ => Color.WhiteSmoke
         };
+    }
+
+    private static void EnableDoubleBuffering(Control control)
+    {
+        typeof(Control)
+            .GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.SetValue(control, true, null);
     }
 }
