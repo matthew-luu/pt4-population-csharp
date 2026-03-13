@@ -1,7 +1,7 @@
 ﻿using Poker.RangeApprox.Core.Domain;
 using System.Data;
 
-namespace Poker.RangeApprox.WinForms;
+namespace Poker.RangeApprox.WinForms.Controls;
 
 public sealed class RangeMatrixControl : UserControl
 {

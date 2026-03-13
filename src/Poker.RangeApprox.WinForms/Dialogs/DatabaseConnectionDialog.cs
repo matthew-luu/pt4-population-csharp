@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Poker.RangeApprox.WinForms;
+namespace Poker.RangeApprox.WinForms.Dialogs;
 
 public sealed class DatabaseConnectionDialog : Form
 {

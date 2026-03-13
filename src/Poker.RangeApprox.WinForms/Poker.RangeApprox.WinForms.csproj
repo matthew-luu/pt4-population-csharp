@@ -13,8 +13,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="..\..\x64\$(Configuration)\Poker.RangeApprox.Equity.Native.dll"
-			  Link="Poker.RangeApprox.Equity.Native.dll"
-			  CopyToOutputDirectory="Always" />
+		<None Include="..\..\x64\$(Configuration)\Poker.RangeApprox.Equity.Native.dll" Link="Poker.RangeApprox.Equity.Native.dll" CopyToOutputDirectory="Always" />
 	</ItemGroup>
 </Project>

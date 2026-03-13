@@ -1,7 +1,7 @@
 ﻿using Poker.RangeApprox.Core.Visualization;
 using System.Reflection;
 
-namespace Poker.RangeApprox.WinForms;
+namespace Poker.RangeApprox.WinForms.Visualization;
 
 public sealed class RangeVisualizationViewerForm : Form
 {

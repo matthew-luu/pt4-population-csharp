@@ -4,19 +4,28 @@
     <_LastSelectedProfileId>D:\pt4-population-csharp\src\Poker.RangeApprox.WinForms\Properties\PublishProfiles\FolderProfile.pubxml</_LastSelectedProfileId>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Update="DatabaseConnectionDialog.cs">
+    <Compile Update="Dialogs\DatabaseConnectionDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="MainForm.cs">
+    <Compile Update="Forms\MainForm.Actions.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="RangeMatrixControl.cs">
+    <Compile Update="Forms\MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\MainForm.Layout.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\MainForm.Validation.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Controls\RangeMatrixControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Update="RangeVisualizationForm.cs">
+    <Compile Update="Visualization\RangeVisualizationForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="RangeVisualizationViewerForm.cs">
+    <Compile Update="Visualization\RangeVisualizationViewerForm.cs">
       <SubType>Form</SubType>
     </Compile>
   </ItemGroup>
