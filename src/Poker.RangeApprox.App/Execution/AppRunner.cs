@@ -30,6 +30,10 @@ public static class AppRunner
                     ExploitCommands.RunExploitThreeBet(context);
                     break;
 
+                case "range-visualization":
+                    ExploitCommands.RunRangeVisualization(context);
+                    break;
+
                 default:
                     ApproximationCommands.RunRfi(context);
                     break;

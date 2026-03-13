@@ -95,6 +95,9 @@ public static class AppBootstrapper
             Rake: rakeProfile,
             Realization: realizationProfile);
 
+        var rangeVisualizationBuilder = new RangeVisualizationBuilder();
+        var rangeVisualizationFileWriter = new RangeVisualizationFileWriter();
+
         return new AppContext(
             Options: options,
             OutputRoot: outputRoot,
@@ -108,6 +111,8 @@ public static class AppBootstrapper
             HandRankingService: handRankingService,
             ExploitEngine: exploitEngine,
             ExploitSizing: exploitSizing,
+            RangeVisualizationBuilder: rangeVisualizationBuilder,
+            RangeVisualizationFileWriter: rangeVisualizationFileWriter,
             Status: status);
     }
 

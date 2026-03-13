@@ -19,4 +19,6 @@ public sealed record AppContext(
     HandVsRangeRankingService HandRankingService,
     ExploitEngine ExploitEngine,
     ExploitSizingProfile ExploitSizing,
+    RangeVisualizationBuilder RangeVisualizationBuilder,
+    RangeVisualizationFileWriter RangeVisualizationFileWriter,
     IAppStatusWriter Status);
